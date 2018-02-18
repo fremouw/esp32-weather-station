@@ -59,6 +59,7 @@ void TimeClient::setup(const String& ntpServer, const uint16_t port, const int t
 }
 
 bool TimeClient::update() {
+    int error = 0;
     static const uint8_t timePacket[TimeClient::kNTPPacketSize] = {
         0b11100011,                         // LI, Version, Mode
         0,                                  // Stratum, or type of clock
@@ -71,7 +72,12 @@ bool TimeClient::update() {
         52
     };
 
-    udp.beginPacket(ntpServer.c_str(), ntpServerPort);
+    error = udp.beginPacket(ntpServer.c_str(), ntpServerPort);
+    if(error < 1) {
+      Serial.print("error getting time.");
+      return false;
+    }
+
     udp.write(timePacket, TimeClient::kNTPPacketSize);
     udp.endPacket();
 
