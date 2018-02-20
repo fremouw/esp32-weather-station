@@ -59,6 +59,7 @@ void TimeClient::setup(const String& ntpServer, const uint16_t port, const int t
 }
 
 bool TimeClient::update() {
+    Serial.println(F("TimeClient::update()"));
     int error = 0;
     static const uint8_t timePacket[TimeClient::kNTPPacketSize] = {
         0b11100011,                         // LI, Version, Mode
@@ -72,7 +73,7 @@ bool TimeClient::update() {
         52
     };
 
-    error = udp.beginPacket(ntpServer.c_str(), ntpServerPort);
+    error = udp.beginPacket(this->ntpServer.c_str(), this->ntpServerPort);
     if(error < 1) {
       Serial.print("error getting time.");
       return false;

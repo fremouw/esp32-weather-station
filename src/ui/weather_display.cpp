@@ -1,5 +1,6 @@
 #include "weather_display.h"
-#include "weather_station_fonts.h"
+#include "fonts/lato.h"
+#include "fonts/meteocons.h"
 #include "weather_station_images.h"
 
 WeatherDisplay::WeatherDisplay(SSD1306Wire& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement) : display(
@@ -195,14 +196,19 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
   const WeatherDisplay *self = static_cast<WeatherDisplay *>(state->userData);
 
   if (self != NULL) {
-    display->setFont(ArialMT_Plain_10);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
 
     wunderground::Conditions::Observation observation;
     self->conditions.getCurrentObservation(observation);
 
-    display->drawString(52 + x, 38 + y, observation.city);
+    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    //
+    // display->setTextAlignment(TEXT_ALIGN_CENTER);
+    //display->drawString(42 + x, 38 + y, observation.city);
+    display->setFont(Lato_Regular_9);
+    display->drawString(46 + x, 38 + y, observation.city);
 
+    display->setFont(ArialMT_Plain_10);
+    display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->drawString(52 + x, 5 + y, observation.title);
 
     display->setFont(ArialMT_Plain_24);

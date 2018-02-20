@@ -3,39 +3,31 @@
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
-
-#define I2C_DISPLAY_ADDRESS 0x3c
-#define I2C_SDA 4
-#define I2C_SCL 5
-// #define I2C_SDA 21
-// #define I2C_SCL 22
-
-
-#define HOSTNAME "MFR-WEATHERSTATION-"
-
-// const char ntpServerName[] PROGMEM = "europe.pool.ntp.org";
-// const char ntpServerName[] PROGMEM = "192.168.243.153";
-const char ntpServerName[] PROGMEM = "capybara.lan";
-const char WUNDERGRROUND_API_KEY[] PROGMEM  = "key";
-const char WUNDERGRROUND_LANGUAGE[] PROGMEM = "EN";
-const char WUNDERGROUND_LATLON[] PROGMEM    = "52.3680491,4.861764";
-
-const char MQTT_BROKER[] PROGMEM = "mqtt.mrtn.io";
-const uint16_t MQTT_BROKER_PORT = 8883;
+#include "config.h"
 
 volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): wifiManager(_wifiManager), display(I2C_DISPLAY_ADDRESS, I2C_SDA, I2C_SCL), ui(&display), weatherClient(WUNDERGRROUND_API_KEY, WUNDERGRROUND_LANGUAGE, WUNDERGROUND_LATLON), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(w1), wifiManager(_wifiManager), display(I2C_DISPLAY_ADDRESS, w0), ui(&display), weatherClient(kWundergroundApiKey, kWundergroundLanguage, kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+
+  measurement.temperature = -1.0;
+  measurement.humidity    = -1.0;
+  measurement.pressure    = -1.0;
 }
 
 void WeatherStation::setup() {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+
+  w0.begin(I2C_DISPLAY_SDA, I2C_DISPLAY_SCL, 700000);
+  w1.begin(I2C_TEMPERATURE_SDA, I2C_TEMPERATURE_SCL, 100000);
+
   weatherDisplay.setup();
 
   weatherDisplay.setShowBootScreen(true);
 
-  timeClient.setup(ntpServerName);
+  timeClient.setup(kNtpServerName);
 
   sensor.setup();
 
@@ -54,34 +46,33 @@ void WeatherStation::setup() {
 
   wifiManager.onConnected(std::bind(&WeatherStation::onConnected, this));
 
-  ArduinoOTA.onStart([this]() {
-    Serial.print(F("OTA update: "));
-    this->isUpdatingFirmware = true;
-    this->weatherDisplay.setShowUpdateScreen(true);
-  });
-
-  ArduinoOTA.onError([this](ota_error_t error) {
-    Serial.println(F(" error."));
-    this->weatherDisplay.setShowUpdateScreen(false);
-    this->isUpdatingFirmware = false;
-  });
-
-  ArduinoOTA.onProgress([this](unsigned int progress, unsigned int total) {
-    Serial.print(F("."));
-    this->weatherDisplay.drawOtaProgress(progress, total);
-  });
-
-  ArduinoOTA.onEnd([this]() {
-    Serial.println(F(" done."));
-    this->weatherDisplay.setShowUpdateScreen(false);
-    this->isUpdatingFirmware = false;
-  });
+  // ArduinoOTA.begin();
+  //
+  // ArduinoOTA.onStart([this]() {
+  //   Serial.print(F("OTA update: "));
+  //   this->isUpdatingFirmware = true;
+  //   this->weatherDisplay.setShowUpdateScreen(true);
+  // });
+  //
+  // ArduinoOTA.onError([this](ota_error_t error) {
+  //   Serial.println(F(" error."));
+  //   this->weatherDisplay.setShowUpdateScreen(false);
+  //   this->isUpdatingFirmware = false;
+  // });
+  //
+  // ArduinoOTA.onProgress([this](unsigned int progress, unsigned int total) {
+  //   Serial.print(F("."));
+  //   this->weatherDisplay.drawOtaProgress(progress, total);
+  // });
+  //
+  // ArduinoOTA.onEnd([this]() {
+  //   Serial.println(F(" done."));
+  //   this->weatherDisplay.setShowUpdateScreen(false);
+  //   this->isUpdatingFirmware = false;
+  // });
 }
 
 void WeatherStation::loop() {
-  // Needs to be here?
-  ArduinoOTA.handle();
-
   if(this->isUpdatingFirmware) {
     return;
   }
@@ -121,6 +112,7 @@ void WeatherStation::loop() {
 
 void WeatherStation::onConnected() {
   Serial.println("weatherstation: got interwebz!");
+
   // Force update.
   wantsToPushTemperature = true;
   wantsToUpdateTime = true;
@@ -128,11 +120,18 @@ void WeatherStation::onConnected() {
 }
 
 uint8_t WeatherStation::backgroundTaskLoop() {
+  // Needs to be here?
+  //ArduinoOTA.handle();
+
+  wifiManager.loop();
+
   if(this->isUpdatingFirmware) {
     return -1;
   }
 
-  wifiManager.loop();
+  if(!wifiManager.isConnected()) {
+    return 0;
+  }
 
   mqttClient.loop();
 
@@ -164,6 +163,8 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       wantsToUpdateTime = false;
     }
   } else if(wantsToUpdateWeather) {
+    wantsToUpdateWeather = false;
+
     //
     weatherClient.update([this](bool success,
                                 wunderground::Conditions& _conditions) mutable {
@@ -173,18 +174,18 @@ uint8_t WeatherStation::backgroundTaskLoop() {
           _conditions.printConditions();
           this->conditions = _conditions;
           this->didUpdateWeather = true;
+        } else {
+          wantsToUpdateWeather = true;
         }
     });
-
-    wantsToUpdateWeather = false;
   } else if(wantsToPushTemperature) {
     // Set only once?
-    mqttClient.setServer(MQTT_BROKER, MQTT_BROKER_PORT);
+    mqttClient.setServer(kMqttBroker, kMqttBrokerPort);
 
     if (!mqttClient.connected()) {
         Serial.println(F("debug: not connected to MQTT broker."));
 
-        if (mqttClient.connect(MQTT_BROKER, "username", "pass")) {
+        if (mqttClient.connect(kMqttBroker, kMqttBrokerUsername, kMqttBrokerPassword)) {
           Serial.println("debug: connected to MQTT broker.");
         }
     }
@@ -205,7 +206,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       root.printTo(msg);
 
       Serial.println(msg);
-      mqttClient.publish("Sensor/Temperature/1", msg.c_str(), true);
+      mqttClient.publish(kMqttTopicName, msg.c_str(), true);
       mqttClient.disconnect();
       wantsToPushTemperature = false;
     }

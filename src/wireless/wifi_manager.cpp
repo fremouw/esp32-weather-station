@@ -1,6 +1,5 @@
 #include "wifi_manager.h"
 #include <ESPmDNS.h>
-#include <ArduinoOTA.h>
 #include <list>
 #include <functional>
 
@@ -18,8 +17,6 @@ void WiFiManager::setup(const String& ssid, const String& password) {
   WiFi.onEvent(WiFiManager::OnWiFiEvent);
 
   this->connect();
-
-  ArduinoOTA.begin();
 }
 
 void WiFiManager::loop() {
@@ -34,6 +31,8 @@ void WiFiManager::loop() {
 
     this->isConnecting = false;
     this->isSleeping = false;
+
+    delay(100);
 
     for(auto it = std::begin(sEventList); it != std::end(sEventList);) {
       WiFiEventHandler &handler = *it;

@@ -1,5 +1,5 @@
-#include <OLEDDisplayUi.h>
 #include <SSD1306Wire.h>
+#include <OLEDDisplayUi.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
@@ -23,6 +23,9 @@ public:
 private:
   static const int kSensorMeasurementInterval = 5000;
   static const int kMaxNTPTimeRetry = 3;
+
+  TwoWire w0;
+  TwoWire w1;
 
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
