@@ -46,6 +46,8 @@ void WeatherStation::setup() {
 
   shortUpdateTimer = Timer::CreateTimer(&WeatherStation::OnShortIntervalTimer, 0, 60000000, true, 80);
   mediumUpdateTimer = Timer::CreateTimer(&WeatherStation::OnMediumIntervalTimer, 1, 300000000, true, 80);
+  // @ToDo: ok, maybe we don't need to synchronize the time every 5 minutes.
+  // Check skew after 24 hours.
   longUpdateTimer = Timer::CreateTimer(&WeatherStation::OnLongIntervalTimer, 2, 3600000000, true, 80);
 
   wifiManager.onConnected(std::bind(&WeatherStation::onConnected, this));
