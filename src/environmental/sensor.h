@@ -15,6 +15,7 @@ namespace environmental {
 
   class Sensor {
     private:
+      static const int kMeasurementTimeout = 3000;
       bool isEnabled = false;
       BME280Class bme280;
 
@@ -24,7 +25,8 @@ namespace environmental {
       };
 
       void setup();
-      void measure(environmental::Measurement &measurement);
+      bool enabled();
+      bool measure(environmental::Measurement &measurement);
   };
 }
 #endif // SENSOR_H_

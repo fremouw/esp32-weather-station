@@ -34,14 +34,31 @@ namespace environmental {
     bme280.writeMode(smNormal);
   }
 
-  void Sensor::measure(environmental::Measurement &measurement) {
+  bool Sensor::enabled() {
+    return this->isEnabled;
+  }
+
+  bool Sensor::measure(environmental::Measurement &measurement) {
     if(!this->isEnabled) {
+      // Try to find BME280.
       setup();
-      return;
+
+      // If still not found, return.
+      if(!this->isEnabled) {
+        Serial.println("error: could not find BME280 sensor.");
+        return false;
+      }
     }
 
     Serial.print("sensor BME280: measuring ");
+
+    unsigned long timeout = millis();
     while (bme280.isMeasuring()) {
+      if(millis() - timeout > kMeasurementTimeout) {
+        Serial.println("error: timeout measuring temperature.");
+        this->isEnabled = false;
+        return false;
+      }
       Serial.print(".");
       delay(50);
     }
@@ -52,5 +69,7 @@ namespace environmental {
     measurement.temperature = bme280.getTemperature();
     measurement.pressure    = bme280.getPressure();
     measurement.humidity    = bme280.getHumidity();
+
+    return true;
   }
 }
