@@ -201,14 +201,10 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
     self->conditions.getCurrentObservation(observation);
 
     display->setTextAlignment(TEXT_ALIGN_LEFT);
-    //
-    // display->setTextAlignment(TEXT_ALIGN_CENTER);
-    //display->drawString(42 + x, 38 + y, observation.city);
     display->setFont(Lato_Regular_9);
     display->drawString(46 + x, 38 + y, observation.city);
 
     display->setFont(ArialMT_Plain_10);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->drawString(52 + x, 5 + y, observation.title);
 
     display->setFont(ArialMT_Plain_24);
@@ -218,9 +214,7 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
     int tempWidth = display->getStringWidth(temp);
 
     display->setFont(Meteocons_Plain_42);
-    // String weatherIconString;
     String weatherIcon;
-    // self->conditions.getWeatherIconName(weatherIconString);
     ConvertIconTextToMeteoconIcon(observation.icon, weatherIcon);
 
     int weatherIconWidth = display->getStringWidth(weatherIcon);
