@@ -49,6 +49,7 @@ private:
   static volatile SemaphoreHandle_t MediumIntervalTimerSemaphore;
   static volatile SemaphoreHandle_t LongIntervalTimerSemaphore;
 
+  bool mqttIsEnabled = false;
   bool wantsToPushTemperature = false;
   bool wantsToUpdateWeather = false;
   bool wantsToUpdateTime = false;

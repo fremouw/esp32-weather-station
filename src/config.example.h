@@ -28,7 +28,7 @@ namespace WSConfig {
   const char kWundergroundLanguage[] PROGMEM = "EN";
   const char kWundergroundLocation[] PROGMEM    = "<lat>,<long>";
 
-  // MQTT configuration. Leave empty if not used.
+  // MQTT configuration. Leave empty (="") if not used.
   const char kMqttBroker[] PROGMEM = "<mqttbroker>";
   const uint16_t kMqttBrokerPort = 8883;
   const char kMqttBrokerUsername[] PROGMEM = "<username>";

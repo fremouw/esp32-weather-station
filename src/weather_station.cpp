@@ -40,6 +40,10 @@ void WeatherStation::setup() {
     NULL,                                   /* Task handle to keep track of created task */
     0);                                     /* pin task to core 1 */
 
+  if(strlen(WSConfig::kMqttBroker) > 0) {
+    this->mqttIsEnabled = true;
+  }
+
   shortUpdateTimer = Timer::CreateTimer(&WeatherStation::OnShortIntervalTimer, 0, 60000000, true, 80);
   mediumUpdateTimer = Timer::CreateTimer(&WeatherStation::OnMediumIntervalTimer, 1, 300000000, true, 80);
   longUpdateTimer = Timer::CreateTimer(&WeatherStation::OnLongIntervalTimer, 2, 3600000000, true, 80);
@@ -114,7 +118,7 @@ void WeatherStation::onConnected() {
   Serial.println("weatherstation: got interwebz!");
 
   // Force update.
-  wantsToPushTemperature = true;
+  wantsToPushTemperature = this->mqttIsEnabled;
   wantsToUpdateTime = true;
   wantsToUpdateWeather = true;
 }
@@ -139,7 +143,9 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     Serial.print("Short fired. WeatherStation::backgroundTaskLoop running on core ");
     Serial.println(xPortGetCoreID());
 
-    wantsToPushTemperature = true;
+    if(this->mqttIsEnabled) {
+      wantsToPushTemperature = true;
+    }
   }
 
   if (xSemaphoreTake(WeatherStation::MediumIntervalTimerSemaphore, 0) == pdTRUE) {
