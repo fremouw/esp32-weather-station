@@ -10,7 +10,7 @@ class WiFiManager {
   public:
     WiFiManager();
 
-    void setup(const String& ssid, const String& password);
+    void setup(const char* ssid, const char* password);
     void loop();
     bool isConnected();
 

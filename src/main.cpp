@@ -1,10 +1,8 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include "config.h"
 #include "weather_station.h"
 #include "wireless/wifi_manager.h"
-
-const String ssid = "SSID";
-const String password = "PASSWORD";
 
 WiFiManager wifiManager;
 
@@ -36,7 +34,7 @@ void setup() {
 
   weatherStation.setup();
 
-  wifiManager.setup(ssid, password);
+  wifiManager.setup(WSConfig::kSsid, WSConfig::kSsidPassword);
 }
 
 void loop() {

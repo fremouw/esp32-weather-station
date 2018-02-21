@@ -10,9 +10,9 @@ volatile SemaphoreHandle_t WiFiManager::WiFiRetrySemaphore = xSemaphoreCreateBin
 WiFiManager::WiFiManager() {
 }
 
-void WiFiManager::setup(const String& ssid, const String& password) {
-  this->ssid = ssid;
-  this->password = password;
+void WiFiManager::setup(const char* ssid, const char* password) {
+  this->ssid = String(ssid);
+  this->password = String(password);
 
   WiFi.onEvent(WiFiManager::OnWiFiEvent);
 

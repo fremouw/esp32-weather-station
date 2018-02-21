@@ -9,7 +9,7 @@ volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaph
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(w1), wifiManager(_wifiManager), display(I2C_DISPLAY_ADDRESS, w0), ui(&display), weatherClient(kWundergroundApiKey, kWundergroundLanguage, kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(w1), wifiManager(_wifiManager), display(WSConfig::kI2cDisplayAddress, w0), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
 
   measurement.temperature = -1.0;
   measurement.humidity    = -1.0;
@@ -20,14 +20,14 @@ void WeatherStation::setup() {
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
 
-  w0.begin(I2C_DISPLAY_SDA, I2C_DISPLAY_SCL, 700000);
-  w1.begin(I2C_TEMPERATURE_SDA, I2C_TEMPERATURE_SCL, 100000);
+  w0.begin(WSConfig::kI2cDisplaySdaPin, WSConfig::kI2cDisplaySclPin, 700000);
+  w1.begin(WSConfig::kI2cTemperatureSdaPin, WSConfig::kI2cTemperatureSclPin, 400000);
 
   weatherDisplay.setup();
 
   weatherDisplay.setShowBootScreen(true);
 
-  timeClient.setup(kNtpServerName);
+  timeClient.setup(WSConfig::kNtpServerName);
 
   sensor.setup();
 
@@ -180,12 +180,12 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     });
   } else if(wantsToPushTemperature) {
     // Set only once?
-    mqttClient.setServer(kMqttBroker, kMqttBrokerPort);
+    mqttClient.setServer(WSConfig::kMqttBroker, WSConfig::kMqttBrokerPort);
 
     if (!mqttClient.connected()) {
         Serial.println(F("debug: not connected to MQTT broker."));
 
-        if (mqttClient.connect(kMqttBroker, kMqttBrokerUsername, kMqttBrokerPassword)) {
+        if (mqttClient.connect(WSConfig::kMqttBroker, WSConfig::kMqttBrokerUsername, WSConfig::kMqttBrokerPassword)) {
           Serial.println("debug: connected to MQTT broker.");
         }
     }
@@ -206,7 +206,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       root.printTo(msg);
 
       Serial.println(msg);
-      mqttClient.publish(kMqttTopicName, msg.c_str(), true);
+      mqttClient.publish(WSConfig::kMqttTopicName, msg.c_str(), true);
       mqttClient.disconnect();
       wantsToPushTemperature = false;
     }
