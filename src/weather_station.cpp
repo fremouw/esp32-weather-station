@@ -95,14 +95,16 @@ void WeatherStation::loop() {
       // Serial.print("weather station::loop running on core ");
       // Serial.println(xPortGetCoreID());
 
-      this->sensor.measure(measurement);
-
-      Serial.print("weather station: read environmental sensor: temperature=");
-      Serial.print(measurement.temperature);
-      Serial.print(" pressure=");
-      Serial.print(measurement.pressure);
-      Serial.print(" humidity=");
-      Serial.println(measurement.humidity);
+      // If it didn't succeed, show last temperature.
+      this->didMeasureTemperature = this->sensor.measure(this->measurement);
+      if(this->didMeasureTemperature) {
+        Serial.print("weather station: read environmental sensor: temperature=");
+        Serial.print(this->measurement.temperature);
+        Serial.print(" pressure=");
+        Serial.print(this->measurement.pressure);
+        Serial.print(" humidity=");
+        Serial.println(this->measurement.humidity);
+      }
 
       this->lastSensorMeasurement = millis();
     }
@@ -186,7 +188,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
           wantsToUpdateWeather = true;
         }
     });
-  } else if(wantsToPushTemperature) {
+  } else if(this->wantsToPushTemperature && this->didMeasureTemperature) {
     // Set only once?
     mqttClient.setServer(WSConfig::kMqttBroker, WSConfig::kMqttBrokerPort);
 

@@ -41,6 +41,7 @@ private:
   bool didSetTime = false;
   bool didUpdateWeather = false;
   bool isUpdatingFirmware = false;
+  bool didMeasureTemperature = false;
   unsigned long lastSensorMeasurement = millis() + kSensorMeasurementInterval + 1;
   hw_timer_t * shortUpdateTimer;
   hw_timer_t * mediumUpdateTimer;
