@@ -38,8 +38,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Written originally by Embedded Adventures
 
 
-#ifndef __BME280_MOD-1022_H
-#define __BME280_MOD-1022_H
+#ifndef __BME280_MOD_1022_H_
+#define __BME280_MOD_1022_H_
 
 #include <Wire.h>
 #include <inttypes.h>
@@ -212,4 +212,4 @@ public:
 
 extern BME280Class BME280;
 
-#endif
+#endif /* __BME280_MOD_1022_H_ */
