@@ -1,3 +1,3 @@
 [submodule "lib/esp8266-oled-ssd1306.git"]
 	path = lib/esp8266-oled-ssd1306.git
-	url = /Users/maarten/Documents/Development/esp32-weather-station.git/lib/esp8266-oled-ssd1306.git
+url=http://git@github.com:fremouw/esp8266-oled-ssd1306.git
