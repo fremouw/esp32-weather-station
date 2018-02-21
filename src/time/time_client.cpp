@@ -49,7 +49,7 @@ void TimeClient::getFormattedDate(String& _date) {
 }
 
 void TimeClient::getUnixTime(unsigned long& unixTime) {
-  unixTime = this->unixTime;
+  unixTime = now();
 }
 
 void TimeClient::setup(const String& ntpServer, const uint16_t port, const int timeout) {
