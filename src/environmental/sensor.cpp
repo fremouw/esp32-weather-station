@@ -66,9 +66,9 @@ namespace environmental {
 
     bme280.readMeasurements();
 
-    measurement.temperature = bme280.getTemperature();
-    measurement.pressure    = bme280.getPressure();
-    measurement.humidity    = bme280.getHumidity();
+    measurement.temperature = bme280.getTemperatureMostAccurate();
+    measurement.pressure    = bme280.getPressureMostAccurate();
+    measurement.humidity    = bme280.getHumidityMostAccurate();
 
     return true;
   }
