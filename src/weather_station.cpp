@@ -3,6 +3,7 @@
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
+#include <cmath>
 #include "config.h"
 
 volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaphoreCreateBinary();
@@ -95,15 +96,30 @@ void WeatherStation::loop() {
       // Serial.print("weather station::loop running on core ");
       // Serial.println(xPortGetCoreID());
 
+      environmental::Measurement measurement;
+
       // If it didn't succeed, show last temperature.
-      this->didMeasureTemperature = this->sensor.measure(this->measurement);
+      this->didMeasureTemperature = this->sensor.measure(measurement);
       if(this->didMeasureTemperature) {
-        Serial.print("weather station: read environmental sensor: temperature=");
-        Serial.print(this->measurement.temperature);
-        Serial.print(" pressure=");
-        Serial.print(this->measurement.pressure);
-        Serial.print(" humidity=");
-        Serial.println(this->measurement.humidity);
+        // if the temperature is changed by more then 100 degrees celcius,
+        // it's probably an invalid reading, so skip.
+        if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
+          this->measurement = measurement;
+
+          Serial.print("weather station: read environmental sensor: temperature=");
+          Serial.print(this->measurement.temperature);
+          Serial.print(" pressure=");
+          Serial.print(this->measurement.pressure);
+          Serial.print(" humidity=");
+          Serial.println(this->measurement.humidity);
+        } else {
+          Serial.print("weather station: read invalid data: temperature=");
+          Serial.print(measurement.temperature);
+          Serial.print(" pressure=");
+          Serial.print(measurement.pressure);
+          Serial.print(" humidity=");
+          Serial.println(measurement.humidity);
+        }
       }
 
       this->lastSensorMeasurement = millis();
