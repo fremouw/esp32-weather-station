@@ -1,4 +1,5 @@
-#include <SSD1306Wire.h>
+// #include <SSD1306Wire.h>
+#include <SSD1306Spi.h>
 #include <OLEDDisplayUi.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -9,6 +10,7 @@
 #include "wunderground/Conditions.h"
 #include "wireless/wifi_manager.h"
 #include "environmental/sensor.h"
+#include "Adafruit_SGP30.h"
 
 #ifndef WEATHER_STATION_H_
 #define WEATHER_STATION_H_
@@ -25,13 +27,14 @@ private:
   static const int kMaxNTPTimeRetry = 3;
 
   TwoWire w0;
-  TwoWire w1;
+  // TwoWire w1;
 
+  Adafruit_SGP30 sgp;
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
   WiFiClientSecure wifiClient;
   PubSubClient mqttClient;
-  SSD1306Wire display;
+  SSD1306Spi display;
   OLEDDisplayUi ui;
   TimeClient timeClient;
   environmental::Measurement measurement;

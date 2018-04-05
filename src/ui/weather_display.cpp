@@ -3,7 +3,7 @@
 #include "fonts/meteocons.h"
 #include "weather_station_images.h"
 
-WeatherDisplay::WeatherDisplay(SSD1306Wire& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement) : display(
+WeatherDisplay::WeatherDisplay(SSD1306Spi& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement) : display(
         display), ui(ui), timeClient(timeClient), conditions(conditions),
         measurement(measurement) {}
 
@@ -38,6 +38,7 @@ void WeatherDisplay::setup() {
 
   ui.init();
 
+  // display.setI2cAutoInit(true);
   display.flipScreenVertically();
 }
 

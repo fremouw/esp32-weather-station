@@ -10,7 +10,7 @@ volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaph
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(w1), wifiManager(_wifiManager), display(WSConfig::kI2cDisplayAddress, w0), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(4, 15, 5), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
 
   this->measurement.temperature = -1.0;
   this->measurement.humidity    = -1.0;
@@ -18,11 +18,11 @@ WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(
 }
 
 void WeatherStation::setup() {
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
+  // pinMode(13, OUTPUT);
+  // digitalWrite(13, HIGH);
 
-  this->w0.begin(WSConfig::kI2cDisplaySdaPin, WSConfig::kI2cDisplaySclPin, 700000);
-  this->w1.begin(WSConfig::kI2cTemperatureSdaPin, WSConfig::kI2cTemperatureSclPin, 100000);
+  this->w0.begin(WSConfig::kI2cSdaPin, WSConfig::kI2cSclPin, 100000);
+  //this->w1.begin(WSConfig::kI2cTemperatureSdaPin, WSConfig::kI2cTemperatureSclPin, 100000);
 
   this->weatherDisplay.setup();
 
@@ -95,6 +95,29 @@ void WeatherStation::loop() {
     if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
       // Serial.print("weather station::loop running on core ");
       // Serial.println(xPortGetCoreID());
+
+      sgp.begin(&w0);
+
+      Serial.print("Found SGP30 serial #");
+      Serial.print(sgp.serialnumber[0], HEX);
+      Serial.print(sgp.serialnumber[1], HEX);
+      Serial.println(sgp.serialnumber[2], HEX);
+
+      if (sgp.IAQmeasure()) {
+        Serial.print("TVOC "); Serial.print(sgp.TVOC); Serial.print(" ppb\t");
+        Serial.print("eCO2 "); Serial.print(sgp.eCO2); Serial.println(" ppm");
+      }
+
+      static int counter = 0;
+      if (counter++ == 6) {
+        counter = 0;
+
+        uint16_t TVOC_base, eCO2_base;
+        if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
+          Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
+          Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
+        }
+      }
 
       environmental::Measurement measurement;
 

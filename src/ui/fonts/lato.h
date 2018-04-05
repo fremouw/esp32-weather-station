@@ -1,6 +1,6 @@
 // Created by http://oleddisplay.squix.ch/ Consider a donation
 // In case of problems make sure that you are using the font file with the correct version!
-const char Lato_Regular_9[] PROGMEM = {
+const uint8_t Lato_Regular_9[] PROGMEM = {
 	0x09, // Width: 9
 	0x0B, // Height: 11
 	0x20, // First Char: 32

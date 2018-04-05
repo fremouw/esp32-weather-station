@@ -11,7 +11,6 @@ WeatherStation weatherStation(wifiManager);
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-
   Serial.print(F("\r\nBooting... v1.0-"));
   Serial.print(APP_VERSION);
   Serial.print(" (");
