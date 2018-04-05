@@ -96,27 +96,35 @@ void WeatherStation::loop() {
       // Serial.print("weather station::loop running on core ");
       // Serial.println(xPortGetCoreID());
 
-      sgp.begin(&w0);
+      if(!this->sgpFound) {
+        this->sgpFound = this->sgp.begin(&w0);
 
-      Serial.print("Found SGP30 serial #");
-      Serial.print(sgp.serialnumber[0], HEX);
-      Serial.print(sgp.serialnumber[1], HEX);
-      Serial.println(sgp.serialnumber[2], HEX);
-
-      if (sgp.IAQmeasure()) {
-        Serial.print("TVOC "); Serial.print(sgp.TVOC); Serial.print(" ppb\t");
-        Serial.print("eCO2 "); Serial.print(sgp.eCO2); Serial.println(" ppm");
+        Serial.print("Found SGP30 serial #");
+        Serial.print(sgp.serialnumber[0], HEX);
+        Serial.print(sgp.serialnumber[1], HEX);
+        Serial.println(sgp.serialnumber[2], HEX);
       }
 
-      static int counter = 0;
-      if (counter++ == 6) {
-        counter = 0;
-
-        uint16_t TVOC_base, eCO2_base;
-        if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
-          Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
-          Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
+      if(this->sgpFound) {
+        if (sgp.IAQmeasure()) {
+          Serial.print("TVOC "); Serial.print(sgp.TVOC); Serial.print(" ppb\t");
+          Serial.print("eCO2 "); Serial.print(sgp.eCO2); Serial.println(" ppm");
+        } else {
+          this->sgpFound = false;
         }
+
+        static int counter = 0;
+        if (counter++ == 6) {
+          counter = 0;
+
+          uint16_t TVOC_base, eCO2_base;
+          if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
+            Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
+            Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
+          }
+        }
+      } else {
+        Serial.println("No SGP30 sensor found.");
       }
 
       environmental::Measurement measurement;

@@ -29,6 +29,7 @@ private:
   TwoWire w0;
   // TwoWire w1;
 
+  boolean sgpFound = false;
   Adafruit_SGP30 sgp;
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
