@@ -1,4 +1,3 @@
-// #include <SSD1306Wire.h>
 #include <SSD1306Spi.h>
 #include <OLEDDisplayUi.h>
 #include <WiFi.h>

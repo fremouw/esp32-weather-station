@@ -1,3 +1,0 @@
-[submodule "lib/esp8266-oled-ssd1306.git"]
-	path = lib/esp8266-oled-ssd1306.git
-url=http://git@github.com:fremouw/esp8266-oled-ssd1306.git
