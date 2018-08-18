@@ -21,9 +21,10 @@ namespace wunderground {
     String path = "/api/" + apiKey + "/conditions/forecast/lang:" + language + query + ".json";
     bool success = false;
 
-    WiFiClientSecure client;
+    // WiFiClientSecure client;
+    WiFiClient client;
 
-    client.setCACert(kVeriSignRootCA);
+    //client.setCACert(kVeriSignRootCA);
 
     if (client.connect(kApiUrl, kApiUrlPort)) {
       String request = \
