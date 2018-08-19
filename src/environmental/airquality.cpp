@@ -4,10 +4,16 @@ namespace environmental {
   void AirQuality::setup() {
     this->isEnabled = this->sgp.begin(&wire);
 
-    Serial.print("Found SGP30 serial #");
-    Serial.print(sgp.serialnumber[0], HEX);
-    Serial.print(sgp.serialnumber[1], HEX);
-    Serial.println(sgp.serialnumber[2], HEX);
+    if(this->isEnabled) {
+      this->sgp.IAQinit();
+
+      Serial.print("Found SGP30 serial #");
+      Serial.print(sgp.serialnumber[0], HEX);
+      Serial.print(sgp.serialnumber[1], HEX);
+      Serial.println(sgp.serialnumber[2], HEX);
+
+      this->humidity = 0;
+    }
   }
 
   bool AirQuality::enabled() {
@@ -35,8 +41,12 @@ namespace environmental {
     Serial.print("sensor SGP30: measuring ");
 
     if(this->isEnabled) {
+      if(this->humidity > 0) {
+        this->sgp.setHumidity(this->humidity);
+      }
+
       unsigned long timeout = millis();
-      while (!sgp.IAQmeasure()) {
+      while (!this->sgp.IAQmeasure()) {
         if(millis() - timeout > kMeasurementTimeout) {
           Serial.println("error: timeout measuring air quality.");
           this->isEnabled = false;

@@ -10,7 +10,7 @@ volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaph
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient), airQuality(w0) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement, airQualityMeasurement), mqttClient(wifiClient), airQuality(w0) {
 
   this->measurement.temperature = -1.0;
   this->measurement.humidity    = -1.0;
@@ -134,8 +134,9 @@ void WeatherStation::loop() {
 
         Serial.print("weather station: read airquality sensor: eCO2=");
         Serial.print(this->airQualityMeasurement.eCo2);
-        Serial.print(" TVOC=");
-        Serial.println(this->airQualityMeasurement.tVoc);
+        Serial.print(" ppm TVOC=");
+        Serial.print(this->airQualityMeasurement.tVoc);
+        Serial.println(" ppb");
       }
 
       this->lastSensorMeasurement = millis();
