@@ -10,14 +10,14 @@ namespace WSConfig {
   const char kSsid[] PROGMEM = "<ssid>";
   const char kSsidPassword[] PROGMEM = "<password>";
 
-  // I2C SDA/SCL pinout for display.
-  const uint8_t kI2cDisplayAddress = 0x3c;
-  const uint8_t kI2cDisplaySdaPin = 21;
-  const uint8_t kI2cDisplaySclPin = 21;
+  // I2C SDA/SCL pinout for sensors.
+  const uint8_t kI2cSdaPin = 21;
+  const uint8_t kI2cSclPin = 22;
 
-  // I2C SDA/SCL pinout for BME280 sensor.
-  const uint8_t kI2cTemperatureSdaPin = 5;
-  const uint8_t kI2cTemperatureSclPin = 4;
+  // SPI pinout for display.
+  const uint8_t kSpiResetPin = 4;
+  const uint8_t kSpiDcPin = 15;
+  const uint8_t kSpiCsPin = 5;
 
   // NTP Timeserver to use.
   const char kNtpServerName[] PROGMEM = "<ntpserver>";
