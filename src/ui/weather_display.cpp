@@ -189,7 +189,6 @@ void WeatherDisplay::DrawDateTime(OLEDDisplay        *display,
     uint16_t eco2 = self->airQualityMeasurement.eCo2;
     uint16_t tvoc = self->airQualityMeasurement.tVoc;
     display->drawString(64 + x, 38 + y, String(eco2) + F("ppm | ") + String(tvoc) + F("ppb"));
-    // display->drawString(32 + x, 36 + y, String(tvoc) + F("ppb"));
   }
 }
 
@@ -260,10 +259,10 @@ void WeatherDisplay::DrawIndoorTemperature(OLEDDisplay        *display,
     display->drawString(70 + x, 14 + y, String(pressure) + F("hPa"));
 
     uint16_t eco2 = self->airQualityMeasurement.eCo2;
-    display->drawString(80 + x, 26 + y, String(eco2) + F("ppm"));
+    display->drawString(78 + x, 26 + y, String(eco2) + F("ppm"));
 
     uint16_t tvoc = self->airQualityMeasurement.tVoc;
-    display->drawString(80 + x, 36 + y, String(tvoc) + F("ppb"));
+    display->drawString(78 + x, 36 + y, String(tvoc) + F("ppb"));
   }
 }
 

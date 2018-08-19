@@ -63,8 +63,10 @@ namespace environmental {
 
       uint16_t TVOC_base, eCO2_base;
       if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
-        Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
-        Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
+        Serial.print("info: air quality baseline values: eCO2: 0x");
+        Serial.print(eCO2_base, HEX);
+        Serial.print(" & TVOC: 0x");
+        Serial.println(TVOC_base, HEX);
       }
     }
 
