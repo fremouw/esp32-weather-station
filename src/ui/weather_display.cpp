@@ -226,7 +226,6 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
 
     int weatherIconWidth = display->getStringWidth(weatherIcon);
     display->drawString(24 + x - weatherIconWidth / 2, 05 + y, weatherIcon);
-
   }
 }
 

@@ -43,7 +43,7 @@ namespace wunderground {
           // Find and get content length from header.
           bool foundContentLength = client.find(kContentLength);
           if(!foundContentLength) {
-            Serial.println("error: could not find content-length in HTTP response header.");
+            Serial.println(F("error: could not find content-length in HTTP response header."));
             break;
           }
 
@@ -60,7 +60,7 @@ namespace wunderground {
 
           bool foundBody = client.find(kEndOfHeaders);
           if(!foundBody) {
-            Serial.println("error: could not find response body.");
+            Serial.println(F("error: could not find response body."));
             break;
           }
 
@@ -69,7 +69,7 @@ namespace wunderground {
           JsonObject& root = jsonBuffer.parse(client);
 
           if(!root.success()) {
-            Serial.println("error: could not parse JSON response.");
+            Serial.println(F("error: could not parse JSON response."));
             break;
           }
 
@@ -81,7 +81,7 @@ namespace wunderground {
         }
 
         if (millis() - timeout > kHTTPTimeout) {
-          Serial.println("error: unable to connect to Weather Underground, timeout.");
+          Serial.println(F("error: unable to connect to Weather Underground, timeout."));
           break;
         }
 

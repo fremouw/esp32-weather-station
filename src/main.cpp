@@ -13,23 +13,23 @@ void setup() {
   Serial.begin(115200);
   Serial.print(F("\r\nBooting... v1.0-"));
   Serial.print(APP_VERSION);
-  Serial.print(" (");
+  Serial.print(F(" ("));
   Serial.print(__TIMESTAMP__);
   Serial.println(F(")."));
-  Serial.print("ESP32 SDK version is: ");
+  Serial.print(F("ESP32 SDK version is: "));
   Serial.print(ESP.getSdkVersion());
-  Serial.println(".");
-  Serial.print("CPU revision is: ");
+  Serial.println(F("."));
+  Serial.print(F("CPU revision is: "));
   Serial.print(ESP.getChipRevision());
-  Serial.println("");
-  Serial.print("Clocks: CPU=");
+  Serial.println(F(""));
+  Serial.print(F("Clocks: CPU="));
   Serial.print(ESP.getCpuFreqMHz());
-  Serial.print(" MHz, Flash=");
+  Serial.print(F(" MHz, Flash="));
   Serial.print(ESP.getFlashChipSpeed() / 1000000);
-  Serial.println(" MHz");
-  Serial.print("Flash: Size=");
+  Serial.println(F(" MHz"));
+  Serial.print(F("Flash: Size="));
   Serial.print(ESP.getFlashChipSize());
-  Serial.println(" bytes");
+  Serial.println(F(" bytes"));
 
   weatherStation.setup();
 

@@ -5,12 +5,12 @@ namespace environmental {
   void Sensor::setup() {
     uint8_t chipId = bme280.readChipId();
     if(chipId == 0xff) {
-      Serial.println("sensor BME280: sensor not found.");
+      Serial.println(F("sensor BME280: sensor not found."));
 
       return;
     } else {
       // find the chip ID out just for fun
-      Serial.print("sensor BME280: chip identifier=0x");
+      Serial.print(F("sensor BME280: chip identifier=0x"));
       Serial.println(chipId, HEX);
       isEnabled = true;
     }
@@ -45,24 +45,24 @@ namespace environmental {
 
       // If still not found, return.
       if(!this->isEnabled) {
-        Serial.println("error: could not find BME280 sensor.");
+        Serial.println(F("error: could not find BME280 sensor."));
         return false;
       }
     }
 
-    Serial.print("sensor BME280: measuring ");
+    Serial.print(F("sensor BME280: measuring "));
 
     unsigned long timeout = millis();
     while (bme280.isMeasuring()) {
       if(millis() - timeout > kMeasurementTimeout) {
-        Serial.println("error: timeout measuring temperature.");
+        Serial.println(F("error: timeout measuring temperature."));
         this->isEnabled = false;
         return false;
       }
-      Serial.print(".");
+      Serial.print(F("."));
       delay(50);
     }
-    Serial.println(" done.");
+    Serial.println(F(" done."));
 
     bme280.readMeasurements();
 

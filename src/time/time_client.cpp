@@ -75,7 +75,7 @@ bool TimeClient::update() {
 
     error = udp.beginPacket(this->ntpServer.c_str(), this->ntpServerPort);
     if(error < 1) {
-      Serial.print("error getting time.");
+      Serial.print(F("error getting time."));
       return false;
     }
 
@@ -85,7 +85,7 @@ bool TimeClient::update() {
     unsigned long timeout = millis();
     while (udp.parsePacket() == 0) {
       if (millis() - timeout > 5000) {
-        Serial.println("NTP: error: timeout.");
+        Serial.println(F("NTP: error: timeout."));
         return false;
       }
     }
@@ -93,9 +93,9 @@ bool TimeClient::update() {
     uint8_t packetBuffer[TimeClient::kNTPPacketSize] = { 0 };
     int count = udp.read((unsigned char*)&packetBuffer, TimeClient::kNTPPacketSize);
     if(count != TimeClient::kNTPPacketSize) {
-      Serial.print("NTP: error, invalid packet, read ");
+      Serial.print(F("NTP: error, invalid packet, read "));
       Serial.print(count);
-      Serial.println(" packets.");
+      Serial.println(F(" packets."));
     }
 
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);

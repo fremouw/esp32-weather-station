@@ -7,7 +7,7 @@ namespace environmental {
     if(this->isEnabled) {
       this->sgp.IAQinit();
 
-      Serial.print("Found SGP30 serial #");
+      Serial.print(F("Found SGP30 serial #"));
       Serial.print(sgp.serialnumber[0], HEX);
       Serial.print(sgp.serialnumber[1], HEX);
       Serial.println(sgp.serialnumber[2], HEX);
@@ -31,14 +31,14 @@ namespace environmental {
 
       // If still not found, return.
       if(!this->isEnabled) {
-        Serial.println("error: could not find SGP30 sensor.");
+        Serial.println(F("error: could not find SGP30 sensor."));
         return false;
       }
 
       this->sgp.IAQmeasure();
     }
 
-    Serial.print("sensor SGP30: measuring ");
+    Serial.print(F("sensor SGP30: measuring "));
 
     if(this->isEnabled) {
       if(this->humidity > 0) {
@@ -48,24 +48,24 @@ namespace environmental {
       unsigned long timeout = millis();
       while (!this->sgp.IAQmeasure()) {
         if(millis() - timeout > kMeasurementTimeout) {
-          Serial.println("error: timeout measuring air quality.");
+          Serial.println(F("error: timeout measuring air quality."));
           this->isEnabled = false;
           return false;
         }
 
-        Serial.print(".");
+        Serial.print(F("."));
         delay(50);
       }
-      Serial.println(" done.");
+      Serial.println(F(" done."));
 
       measurement.eCo2 = sgp.eCO2;
       measurement.tVoc = sgp.TVOC;
 
       uint16_t TVOC_base, eCO2_base;
       if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
-        Serial.print("info: air quality baseline values: eCO2: 0x");
+        Serial.print(F("info: air quality baseline values: eCO2: 0x"));
         Serial.print(eCO2_base, HEX);
-        Serial.print(" & TVOC: 0x");
+        Serial.print(F(" & TVOC: 0x"));
         Serial.println(TVOC_base, HEX);
       }
     }

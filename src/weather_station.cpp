@@ -98,7 +98,7 @@ void WeatherStation::loop() {
 }
 
 void WeatherStation::onConnected() {
-  Serial.println("weatherstation: got interwebz!");
+  Serial.println(F("weatherstation: got interwebz!"));
 
   // Force update.
   this->wantsToPushTemperature = this->mqttIsEnabled;
@@ -133,21 +133,21 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
         this->measurement = measurement;
 
-        Serial.print("weather station: read environmental sensor: temperature=");
+        Serial.print(F("weather station: read environmental sensor: temperature="));
         Serial.print(this->measurement.temperature);
-        Serial.print(" pressure=");
+        Serial.print(F(" pressure="));
         Serial.print(this->measurement.pressure);
-        Serial.print(" humidity=");
+        Serial.print(F(" humidity="));
         Serial.println(this->measurement.humidity);
 
         // Improves quality of CO2 measurement.
         this->airQuality.setHumidity(this->measurement.humidity);
       } else {
-        Serial.print("weather station: read invalid data: temperature=");
+        Serial.print(F("weather station: read invalid data: temperature="));
         Serial.print(measurement.temperature);
-        Serial.print(" pressure=");
+        Serial.print(F(" pressure="));
         Serial.print(measurement.pressure);
-        Serial.print(" humidity=");
+        Serial.print(F(" humidity="));
         Serial.println(measurement.humidity);
       }
     }
@@ -157,18 +157,18 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     if(this->didMeasureAirQuality) {
       this->airQualityMeasurement = airQualityMeasurement;
 
-      Serial.print("weather station: read airquality sensor: eCO2=");
+      Serial.print(F("weather station: read airquality sensor: eCO2="));
       Serial.print(this->airQualityMeasurement.eCo2);
-      Serial.print(" ppm TVOC=");
+      Serial.print(F(" ppm TVOC="));
       Serial.print(this->airQualityMeasurement.tVoc);
-      Serial.println(" ppb");
+      Serial.println(F(" ppb"));
     }
 
     this->lastSensorMeasurement = millis();
   }
 
   if (xSemaphoreTake(WeatherStation::ShortIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Short fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Short fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     if(this->mqttIsEnabled) {
@@ -177,14 +177,14 @@ uint8_t WeatherStation::backgroundTaskLoop() {
   }
 
   if (xSemaphoreTake(WeatherStation::MediumIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Timer fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Timer fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     this->wantsToUpdateWeather = true;
   }
 
   if (xSemaphoreTake(WeatherStation::LongIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Slow Timer fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Slow Timer fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     this->wantsToUpdateTime = true;
@@ -202,7 +202,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     //
     this->weatherClient.update([this](bool success,
                                 wunderground::Conditions& _conditions) mutable {
-        Serial.println("weatherClient.update");
+        Serial.println(F("weatherClient.update"));
 
         if (success) {
           _conditions.printConditions();
@@ -220,7 +220,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
         Serial.println(F("debug: not connected to MQTT broker."));
 
         if (this->mqttClient.connect(WSConfig::kMqttBroker, WSConfig::kMqttBrokerUsername, WSConfig::kMqttBrokerPassword)) {
-          Serial.println("debug: connected to MQTT broker.");
+          Serial.println(F("debug: connected to MQTT broker."));
         }
     }
 
@@ -277,7 +277,7 @@ void WeatherStation::StaticBackgroundTask(void* parameter) {
       for(;;) {
         micros();
         if(self->backgroundTaskLoop() < 0) {
-          Serial.println("weather station: stopping background task.");
+          Serial.println(F("weather station: stopping background task."));
           break;
         }
       }
