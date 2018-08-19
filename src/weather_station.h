@@ -9,7 +9,8 @@
 #include "wunderground/Conditions.h"
 #include "wireless/wifi_manager.h"
 #include "environmental/sensor.h"
-#include "Adafruit_SGP30.h"
+#include "environmental/airquality.h"
+// #include "Adafruit_SGP30.h"
 
 #ifndef WEATHER_STATION_H_
 #define WEATHER_STATION_H_
@@ -28,8 +29,8 @@ private:
   TwoWire w0;
   // TwoWire w1;
 
-  boolean sgpFound = false;
-  Adafruit_SGP30 sgp;
+  // boolean sgpFound = false;
+  // Adafruit_SGP30 sgp;
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
   WiFiClientSecure wifiClient;
@@ -38,13 +39,16 @@ private:
   OLEDDisplayUi ui;
   TimeClient timeClient;
   environmental::Measurement measurement;
+  environmental::AirQualityMeasurement airQualityMeasurement;
   wunderground::Conditions conditions;
   WeatherDisplay weatherDisplay;
   environmental::Sensor sensor;
+  environmental::AirQuality airQuality;
   bool didSetTime = false;
   bool didUpdateWeather = false;
   bool isUpdatingFirmware = false;
   bool didMeasureTemperature = false;
+  bool didMeasureAirQuality = false;
   unsigned long lastSensorMeasurement = millis() + kSensorMeasurementInterval + 1;
   hw_timer_t * shortUpdateTimer;
   hw_timer_t * mediumUpdateTimer;

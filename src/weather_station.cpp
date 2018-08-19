@@ -10,7 +10,7 @@ volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaph
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient), airQuality(w0) {
 
   this->measurement.temperature = -1.0;
   this->measurement.humidity    = -1.0;
@@ -31,6 +31,8 @@ void WeatherStation::setup() {
   this->timeClient.setup(WSConfig::kNtpServerName);
 
   this->sensor.setup();
+
+  this->airQuality.setup();
 
   xTaskCreatePinnedToCore(
     WeatherStation::StaticBackgroundTask,   /* Task function. */
@@ -96,37 +98,6 @@ void WeatherStation::loop() {
       // Serial.print("weather station::loop running on core ");
       // Serial.println(xPortGetCoreID());
 
-      if(!this->sgpFound) {
-        this->sgpFound = this->sgp.begin(&w0);
-
-        Serial.print("Found SGP30 serial #");
-        Serial.print(sgp.serialnumber[0], HEX);
-        Serial.print(sgp.serialnumber[1], HEX);
-        Serial.println(sgp.serialnumber[2], HEX);
-      }
-
-      if(this->sgpFound) {
-        if (sgp.IAQmeasure()) {
-          Serial.print("TVOC "); Serial.print(sgp.TVOC); Serial.print(" ppb\t");
-          Serial.print("eCO2 "); Serial.print(sgp.eCO2); Serial.println(" ppm");
-        } else {
-          this->sgpFound = false;
-        }
-
-        static int counter = 0;
-        if (counter++ == 6) {
-          counter = 0;
-
-          uint16_t TVOC_base, eCO2_base;
-          if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
-            Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
-            Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
-          }
-        }
-      } else {
-        Serial.println("No SGP30 sensor found.");
-      }
-
       environmental::Measurement measurement;
 
       // If it didn't succeed, show last temperature.
@@ -143,6 +114,9 @@ void WeatherStation::loop() {
           Serial.print(this->measurement.pressure);
           Serial.print(" humidity=");
           Serial.println(this->measurement.humidity);
+
+          // Improves quality of CO2 measurement.
+          this->airQuality.setHumidity(this->measurement.humidity);
         } else {
           Serial.print("weather station: read invalid data: temperature=");
           Serial.print(measurement.temperature);
@@ -151,6 +125,17 @@ void WeatherStation::loop() {
           Serial.print(" humidity=");
           Serial.println(measurement.humidity);
         }
+      }
+
+      environmental::AirQualityMeasurement airQualityMeasurement;
+      this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
+      if(this->didMeasureAirQuality) {
+        this->airQualityMeasurement = airQualityMeasurement;
+
+        Serial.print("weather station: read airquality sensor: eCO2=");
+        Serial.print(this->airQualityMeasurement.eCo2);
+        Serial.print(" TVOC=");
+        Serial.println(this->airQualityMeasurement.tVoc);
       }
 
       this->lastSensorMeasurement = millis();
@@ -257,6 +242,8 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       root["temperature"] = this->measurement.temperature;
       root["humidity"] = this->measurement.humidity;
       root["pressure"] = this->measurement.pressure;
+      root["eco2"] = this->airQualityMeasurement.eCo2;
+      root["tvoc"] = this->airQualityMeasurement.tVoc;
       root["time"] = unixTime;
 
       String msg;
