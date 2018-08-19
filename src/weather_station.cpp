@@ -54,8 +54,6 @@ void WeatherStation::setup() {
 
   this->wifiManager.onConnected(std::bind(&WeatherStation::onConnected, this));
 
-  // ArduinoOTA.begin();
-  //
   // ArduinoOTA.onStart([this]() {
   //   Serial.print(F("OTA update: "));
   //   this->isUpdatingFirmware = true;
@@ -78,10 +76,13 @@ void WeatherStation::setup() {
   //   this->weatherDisplay.setShowUpdateScreen(false);
   //   this->isUpdatingFirmware = false;
   // });
+  //
+  // ArduinoOTA.begin();
 }
 
 void WeatherStation::loop() {
   if(this->isUpdatingFirmware) {
+    yield();
     return;
   }
 
@@ -108,7 +109,7 @@ void WeatherStation::onConnected() {
 
 uint8_t WeatherStation::backgroundTaskLoop() {
   // Needs to be here?
-  //ArduinoOTA.handle();
+  // ArduinoOTA.handle();
 
   this->wifiManager.loop();
 
