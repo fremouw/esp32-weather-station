@@ -88,59 +88,6 @@ void WeatherStation::loop() {
   int remainingTimeBudget = weatherDisplay.update();
 
   if (remainingTimeBudget > 0) {
-    // You can do some work here
-    // Don't do stuff if you are below your
-    // time budget.
-
-    // Read in UI loop, as the sensor shares the I2C bus with the display.
-    if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
-      // Serial.print("weather station::loop running on core ");
-      // Serial.println(xPortGetCoreID());
-
-      environmental::Measurement measurement;
-
-      // If it didn't succeed, show last temperature.
-      this->didMeasureTemperature = this->sensor.measure(measurement);
-      if(this->didMeasureTemperature) {
-        // if the temperature is changed by more then 100 degrees celcius,
-        // it's probably an invalid reading, so skip.
-        if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
-          this->measurement = measurement;
-
-          Serial.print("weather station: read environmental sensor: temperature=");
-          Serial.print(this->measurement.temperature);
-          Serial.print(" pressure=");
-          Serial.print(this->measurement.pressure);
-          Serial.print(" humidity=");
-          Serial.println(this->measurement.humidity);
-
-          // Improves quality of CO2 measurement.
-          this->airQuality.setHumidity(this->measurement.humidity);
-        } else {
-          Serial.print("weather station: read invalid data: temperature=");
-          Serial.print(measurement.temperature);
-          Serial.print(" pressure=");
-          Serial.print(measurement.pressure);
-          Serial.print(" humidity=");
-          Serial.println(measurement.humidity);
-        }
-      }
-
-      environmental::AirQualityMeasurement airQualityMeasurement;
-      this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
-      if(this->didMeasureAirQuality) {
-        this->airQualityMeasurement = airQualityMeasurement;
-
-        Serial.print("weather station: read airquality sensor: eCO2=");
-        Serial.print(this->airQualityMeasurement.eCo2);
-        Serial.print(" ppm TVOC=");
-        Serial.print(this->airQualityMeasurement.tVoc);
-        Serial.println(" ppb");
-      }
-
-      this->lastSensorMeasurement = millis();
-    }
-
     int8_t wiFiQuality = 0;
     WiFiManager::GetWifiQuality(wiFiQuality);
 
@@ -174,6 +121,51 @@ uint8_t WeatherStation::backgroundTaskLoop() {
   }
 
   this->mqttClient.loop();
+
+  if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
+    environmental::Measurement measurement;
+
+    // If it didn't succeed, show last temperature.
+    this->didMeasureTemperature = this->sensor.measure(measurement);
+    if(this->didMeasureTemperature) {
+      // if the temperature is changed by more then 100 degrees celcius,
+      // it's probably an invalid reading, so skip.
+      if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
+        this->measurement = measurement;
+
+        Serial.print("weather station: read environmental sensor: temperature=");
+        Serial.print(this->measurement.temperature);
+        Serial.print(" pressure=");
+        Serial.print(this->measurement.pressure);
+        Serial.print(" humidity=");
+        Serial.println(this->measurement.humidity);
+
+        // Improves quality of CO2 measurement.
+        this->airQuality.setHumidity(this->measurement.humidity);
+      } else {
+        Serial.print("weather station: read invalid data: temperature=");
+        Serial.print(measurement.temperature);
+        Serial.print(" pressure=");
+        Serial.print(measurement.pressure);
+        Serial.print(" humidity=");
+        Serial.println(measurement.humidity);
+      }
+    }
+
+    environmental::AirQualityMeasurement airQualityMeasurement;
+    this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
+    if(this->didMeasureAirQuality) {
+      this->airQualityMeasurement = airQualityMeasurement;
+
+      Serial.print("weather station: read airquality sensor: eCO2=");
+      Serial.print(this->airQualityMeasurement.eCo2);
+      Serial.print(" ppm TVOC=");
+      Serial.print(this->airQualityMeasurement.tVoc);
+      Serial.println(" ppb");
+    }
+
+    this->lastSensorMeasurement = millis();
+  }
 
   if (xSemaphoreTake(WeatherStation::ShortIntervalTimerSemaphore, 0) == pdTRUE) {
     Serial.print("Short fired. WeatherStation::backgroundTaskLoop running on core ");
