@@ -3,9 +3,8 @@
 #include "fonts/meteocons.h"
 #include "weather_station_images.h"
 
-WeatherDisplay::WeatherDisplay(SSD1306Wire& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement) : display(
-        display), ui(ui), timeClient(timeClient), conditions(conditions),
-        measurement(measurement) {}
+WeatherDisplay::WeatherDisplay(OLEDDisplay& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement, environmental::AirQualityMeasurement& airQualityMeasurement) : display(display), ui(ui), timeClient(timeClient), conditions(conditions),
+        measurement(measurement), airQualityMeasurement(airQualityMeasurement) {}
 
 void WeatherDisplay::setup() {
   ui.setTargetFPS(60);
@@ -38,6 +37,7 @@ void WeatherDisplay::setup() {
 
   ui.init();
 
+  // display.setI2cAutoInit(true);
   display.flipScreenVertically();
 }
 
@@ -182,6 +182,13 @@ void WeatherDisplay::DrawDateTime(OLEDDisplay        *display,
 
     display->drawString(64 + x, 15 + y, time);
     display->setTextAlignment(TEXT_ALIGN_LEFT);
+
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->setFont(ArialMT_Plain_10);
+
+    uint16_t eco2 = self->airQualityMeasurement.eCo2;
+    uint16_t tvoc = self->airQualityMeasurement.tVoc;
+    display->drawString(64 + x, 38 + y, String(eco2) + F("ppm | ") + String(tvoc) + F("ppb"));
   }
 }
 
@@ -219,7 +226,6 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
 
     int weatherIconWidth = display->getStringWidth(weatherIcon);
     display->drawString(24 + x - weatherIconWidth / 2, 05 + y, weatherIcon);
-
   }
 }
 
@@ -250,6 +256,12 @@ void WeatherDisplay::DrawIndoorTemperature(OLEDDisplay        *display,
     display->setFont(ArialMT_Plain_10);
     float pressure = self->measurement.pressure;
     display->drawString(70 + x, 14 + y, String(pressure) + F("hPa"));
+
+    uint16_t eco2 = self->airQualityMeasurement.eCo2;
+    display->drawString(78 + x, 26 + y, String(eco2) + F("ppm"));
+
+    uint16_t tvoc = self->airQualityMeasurement.tVoc;
+    display->drawString(78 + x, 36 + y, String(tvoc) + F("ppb"));
   }
 }
 

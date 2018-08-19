@@ -10,7 +10,7 @@ volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaph
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
 
-WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(w1), wifiManager(_wifiManager), display(WSConfig::kI2cDisplayAddress, w0), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement), mqttClient(wifiClient) {
+WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement, airQualityMeasurement), mqttClient(wifiClient), airQuality(w0) {
 
   this->measurement.temperature = -1.0;
   this->measurement.humidity    = -1.0;
@@ -18,11 +18,10 @@ WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), w1(1), sensor(
 }
 
 void WeatherStation::setup() {
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
+  // pinMode(13, OUTPUT);
+  // digitalWrite(13, HIGH);
 
-  this->w0.begin(WSConfig::kI2cDisplaySdaPin, WSConfig::kI2cDisplaySclPin, 700000);
-  this->w1.begin(WSConfig::kI2cTemperatureSdaPin, WSConfig::kI2cTemperatureSclPin, 100000);
+  this->w0.begin(WSConfig::kI2cSdaPin, WSConfig::kI2cSclPin, 100000);
 
   this->weatherDisplay.setup();
 
@@ -31,6 +30,8 @@ void WeatherStation::setup() {
   this->timeClient.setup(WSConfig::kNtpServerName);
 
   this->sensor.setup();
+
+  this->airQuality.setup();
 
   xTaskCreatePinnedToCore(
     WeatherStation::StaticBackgroundTask,   /* Task function. */
@@ -53,8 +54,6 @@ void WeatherStation::setup() {
 
   this->wifiManager.onConnected(std::bind(&WeatherStation::onConnected, this));
 
-  // ArduinoOTA.begin();
-  //
   // ArduinoOTA.onStart([this]() {
   //   Serial.print(F("OTA update: "));
   //   this->isUpdatingFirmware = true;
@@ -77,54 +76,19 @@ void WeatherStation::setup() {
   //   this->weatherDisplay.setShowUpdateScreen(false);
   //   this->isUpdatingFirmware = false;
   // });
+  //
+  // ArduinoOTA.begin();
 }
 
 void WeatherStation::loop() {
   if(this->isUpdatingFirmware) {
+    yield();
     return;
   }
 
   int remainingTimeBudget = weatherDisplay.update();
 
   if (remainingTimeBudget > 0) {
-    // You can do some work here
-    // Don't do stuff if you are below your
-    // time budget.
-
-    // Read in UI loop, as the sensor shares the I2C bus with the display.
-    if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
-      // Serial.print("weather station::loop running on core ");
-      // Serial.println(xPortGetCoreID());
-
-      environmental::Measurement measurement;
-
-      // If it didn't succeed, show last temperature.
-      this->didMeasureTemperature = this->sensor.measure(measurement);
-      if(this->didMeasureTemperature) {
-        // if the temperature is changed by more then 100 degrees celcius,
-        // it's probably an invalid reading, so skip.
-        if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
-          this->measurement = measurement;
-
-          Serial.print("weather station: read environmental sensor: temperature=");
-          Serial.print(this->measurement.temperature);
-          Serial.print(" pressure=");
-          Serial.print(this->measurement.pressure);
-          Serial.print(" humidity=");
-          Serial.println(this->measurement.humidity);
-        } else {
-          Serial.print("weather station: read invalid data: temperature=");
-          Serial.print(measurement.temperature);
-          Serial.print(" pressure=");
-          Serial.print(measurement.pressure);
-          Serial.print(" humidity=");
-          Serial.println(measurement.humidity);
-        }
-      }
-
-      this->lastSensorMeasurement = millis();
-    }
-
     int8_t wiFiQuality = 0;
     WiFiManager::GetWifiQuality(wiFiQuality);
 
@@ -135,7 +99,7 @@ void WeatherStation::loop() {
 }
 
 void WeatherStation::onConnected() {
-  Serial.println("weatherstation: got interwebz!");
+  Serial.println(F("weatherstation: got interwebz!"));
 
   // Force update.
   this->wantsToPushTemperature = this->mqttIsEnabled;
@@ -145,7 +109,7 @@ void WeatherStation::onConnected() {
 
 uint8_t WeatherStation::backgroundTaskLoop() {
   // Needs to be here?
-  //ArduinoOTA.handle();
+  // ArduinoOTA.handle();
 
   this->wifiManager.loop();
 
@@ -159,8 +123,53 @@ uint8_t WeatherStation::backgroundTaskLoop() {
 
   this->mqttClient.loop();
 
+  if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
+    environmental::Measurement measurement;
+
+    // If it didn't succeed, show last temperature.
+    this->didMeasureTemperature = this->sensor.measure(measurement);
+    if(this->didMeasureTemperature) {
+      // if the temperature is changed by more then 100 degrees celcius,
+      // it's probably an invalid reading, so skip.
+      if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
+        this->measurement = measurement;
+
+        Serial.print(F("weather station: read environmental sensor: temperature="));
+        Serial.print(this->measurement.temperature);
+        Serial.print(F(" pressure="));
+        Serial.print(this->measurement.pressure);
+        Serial.print(F(" humidity="));
+        Serial.println(this->measurement.humidity);
+
+        // Improves quality of CO2 measurement.
+        this->airQuality.setHumidity(this->measurement.humidity);
+      } else {
+        Serial.print(F("weather station: read invalid data: temperature="));
+        Serial.print(measurement.temperature);
+        Serial.print(F(" pressure="));
+        Serial.print(measurement.pressure);
+        Serial.print(F(" humidity="));
+        Serial.println(measurement.humidity);
+      }
+    }
+
+    environmental::AirQualityMeasurement airQualityMeasurement;
+    this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
+    if(this->didMeasureAirQuality) {
+      this->airQualityMeasurement = airQualityMeasurement;
+
+      Serial.print(F("weather station: read airquality sensor: eCO2="));
+      Serial.print(this->airQualityMeasurement.eCo2);
+      Serial.print(F(" ppm TVOC="));
+      Serial.print(this->airQualityMeasurement.tVoc);
+      Serial.println(F(" ppb"));
+    }
+
+    this->lastSensorMeasurement = millis();
+  }
+
   if (xSemaphoreTake(WeatherStation::ShortIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Short fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Short fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     if(this->mqttIsEnabled) {
@@ -169,14 +178,14 @@ uint8_t WeatherStation::backgroundTaskLoop() {
   }
 
   if (xSemaphoreTake(WeatherStation::MediumIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Timer fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Timer fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     this->wantsToUpdateWeather = true;
   }
 
   if (xSemaphoreTake(WeatherStation::LongIntervalTimerSemaphore, 0) == pdTRUE) {
-    Serial.print("Slow Timer fired. WeatherStation::backgroundTaskLoop running on core ");
+    Serial.print(F("Slow Timer fired. WeatherStation::backgroundTaskLoop running on core "));
     Serial.println(xPortGetCoreID());
 
     this->wantsToUpdateTime = true;
@@ -194,7 +203,10 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     //
     this->weatherClient.update([this](bool success,
                                 wunderground::Conditions& _conditions) mutable {
-        Serial.println("weatherClient.update");
+        environmental::AirQualityMeasurement measurement;
+        this->airQuality.getBaseline(measurement);
+
+        Serial.println(F("weatherClient.update"));
 
         if (success) {
           _conditions.printConditions();
@@ -212,7 +224,7 @@ uint8_t WeatherStation::backgroundTaskLoop() {
         Serial.println(F("debug: not connected to MQTT broker."));
 
         if (this->mqttClient.connect(WSConfig::kMqttBroker, WSConfig::kMqttBrokerUsername, WSConfig::kMqttBrokerPassword)) {
-          Serial.println("debug: connected to MQTT broker.");
+          Serial.println(F("debug: connected to MQTT broker."));
         }
     }
 
@@ -226,6 +238,8 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       root["temperature"] = this->measurement.temperature;
       root["humidity"] = this->measurement.humidity;
       root["pressure"] = this->measurement.pressure;
+      root["eco2"] = this->airQualityMeasurement.eCo2;
+      root["tvoc"] = this->airQualityMeasurement.tVoc;
       root["time"] = unixTime;
 
       String msg;
@@ -267,7 +281,7 @@ void WeatherStation::StaticBackgroundTask(void* parameter) {
       for(;;) {
         micros();
         if(self->backgroundTaskLoop() < 0) {
-          Serial.println("weather station: stopping background task.");
+          Serial.println(F("weather station: stopping background task."));
           break;
         }
       }

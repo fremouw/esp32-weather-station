@@ -9,7 +9,7 @@
 
 namespace wunderground {
   static const char kApiUrl[] PROGMEM = "api.wunderground.com";
-  static unsigned int kApiUrlPort = 443;
+  static unsigned int kApiUrlPort = 80;//443;
 
   class Client {
     public:

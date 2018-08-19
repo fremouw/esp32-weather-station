@@ -1,7 +1,9 @@
 #include <OLEDDisplayUi.h>
+// #include <SSD1306Spi.h>
 #include <SSD1306Wire.h>
 #include "wunderground/Conditions.h"
 #include "environmental/sensor.h"
+#include "environmental/airquality.h"
 #include "time/time_client.h"
 
 #ifndef UI_WEATHER_DISPLAY_H_
@@ -9,7 +11,7 @@
 
 class WeatherDisplay {
   public:
-    WeatherDisplay(SSD1306Wire& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement);
+    WeatherDisplay(OLEDDisplay& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement, environmental::AirQualityMeasurement& airQualityMeasurement);
 
     void setup();
     int update();
@@ -20,10 +22,11 @@ class WeatherDisplay {
     void drawBootScreen();
     void drawOtaProgress(const unsigned int progress, const unsigned int total);
   private:
-    SSD1306Wire& display;
+    OLEDDisplay& display;
     OLEDDisplayUi& ui;
     TimeClient& timeClient;
     environmental::Measurement& measurement;
+    environmental::AirQualityMeasurement& airQualityMeasurement;
     wunderground::Conditions& conditions;
 
     int numberOfFrames;

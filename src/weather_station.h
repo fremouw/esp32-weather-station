@@ -1,4 +1,4 @@
-#include <SSD1306Wire.h>
+#include <SSD1306Spi.h>
 #include <OLEDDisplayUi.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -9,6 +9,7 @@
 #include "wunderground/Conditions.h"
 #include "wireless/wifi_manager.h"
 #include "environmental/sensor.h"
+#include "environmental/airquality.h"
 
 #ifndef WEATHER_STATION_H_
 #define WEATHER_STATION_H_
@@ -25,23 +26,24 @@ private:
   static const int kMaxNTPTimeRetry = 3;
 
   TwoWire w0;
-  TwoWire w1;
-
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
   WiFiClientSecure wifiClient;
   PubSubClient mqttClient;
-  SSD1306Wire display;
+  SSD1306Spi display;
   OLEDDisplayUi ui;
   TimeClient timeClient;
   environmental::Measurement measurement;
+  environmental::AirQualityMeasurement airQualityMeasurement;
   wunderground::Conditions conditions;
   WeatherDisplay weatherDisplay;
   environmental::Sensor sensor;
+  environmental::AirQuality airQuality;
   bool didSetTime = false;
   bool didUpdateWeather = false;
   bool isUpdatingFirmware = false;
   bool didMeasureTemperature = false;
+  bool didMeasureAirQuality = false;
   unsigned long lastSensorMeasurement = millis() + kSensorMeasurementInterval + 1;
   hw_timer_t * shortUpdateTimer;
   hw_timer_t * mediumUpdateTimer;
