@@ -1,0 +1,3 @@
+[submodule "lib/Adafruit_SGP30.git"]
+	path = lib/Adafruit_SGP30.git
+	url = https://fremouw@github.com/fremouw/Adafruit_SGP30.git
