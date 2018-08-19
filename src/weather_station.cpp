@@ -203,6 +203,9 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     //
     this->weatherClient.update([this](bool success,
                                 wunderground::Conditions& _conditions) mutable {
+        environmental::AirQualityMeasurement measurement;
+        this->airQuality.getBaseline(measurement);
+
         Serial.println(F("weatherClient.update"));
 
         if (success) {

@@ -24,6 +24,29 @@ namespace environmental {
     this->humidity = humidity;
   }
 
+  bool AirQuality::getBaseline(environmental::AirQualityMeasurement &measurement) {
+    if(!this->isEnabled) {
+      return false;
+    }
+
+    uint16_t tvoc;
+    uint16_t eco2;
+
+    if(sgp.getIAQBaseline(&eco2, &tvoc)) {
+      Serial.print(F("info: air quality baseline values: eCO2: 0x"));
+      Serial.print(eco2, HEX);
+      Serial.print(F(", TVOC: 0x"));
+      Serial.println(tvoc, HEX);
+
+      measurement.tVoc = tvoc;
+      measurement.eCo2 = eco2;
+
+      return true;
+    }
+
+    return false;
+  }
+
   bool AirQuality::measure(environmental::AirQualityMeasurement &measurement) {
     if(!this->isEnabled) {
       // Try to find BME280.
@@ -60,14 +83,6 @@ namespace environmental {
 
       measurement.eCo2 = sgp.eCO2;
       measurement.tVoc = sgp.TVOC;
-
-      uint16_t TVOC_base, eCO2_base;
-      if(sgp.getIAQBaseline(&eCO2_base, &TVOC_base)) {
-        Serial.print(F("info: air quality baseline values: eCO2: 0x"));
-        Serial.print(eCO2_base, HEX);
-        Serial.print(F(" & TVOC: 0x"));
-        Serial.println(TVOC_base, HEX);
-      }
     }
 
     return true;

@@ -27,6 +27,7 @@ namespace environmental {
 
       void setup();
       bool enabled();
+      bool getBaseline(environmental::AirQualityMeasurement &measurement);
       bool measure(environmental::AirQualityMeasurement &measurement);
   };
 }
