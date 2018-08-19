@@ -82,13 +82,57 @@ void WeatherStation::setup() {
 
 void WeatherStation::loop() {
   if(this->isUpdatingFirmware) {
-    yield();
     return;
   }
 
   int remainingTimeBudget = weatherDisplay.update();
 
   if (remainingTimeBudget > 0) {
+    if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
+      environmental::Measurement measurement;
+
+      // If it didn't succeed, show last temperature.
+      this->didMeasureTemperature = this->sensor.measure(measurement);
+      if(this->didMeasureTemperature) {
+        // if the temperature is changed by more then 100 degrees celcius,
+        // it's probably an invalid reading, so skip.
+        if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
+          this->measurement = measurement;
+
+          Serial.print(F("weather station: read environmental sensor: temperature="));
+          Serial.print(this->measurement.temperature);
+          Serial.print(F(" pressure="));
+          Serial.print(this->measurement.pressure);
+          Serial.print(F(" humidity="));
+          Serial.println(this->measurement.humidity);
+
+          // Improves quality of CO2 measurement.
+          this->airQuality.setHumidity(this->measurement.humidity);
+        } else {
+          Serial.print(F("weather station: read invalid data: temperature="));
+          Serial.print(measurement.temperature);
+          Serial.print(F(" pressure="));
+          Serial.print(measurement.pressure);
+          Serial.print(F(" humidity="));
+          Serial.println(measurement.humidity);
+        }
+      }
+
+      environmental::AirQualityMeasurement airQualityMeasurement;
+      this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
+      if(this->didMeasureAirQuality) {
+        this->airQualityMeasurement = airQualityMeasurement;
+
+        Serial.print(F("weather station: read airquality sensor: eCO2="));
+        Serial.print(this->airQualityMeasurement.eCo2);
+        Serial.print(F(" ppm TVOC="));
+        Serial.print(this->airQualityMeasurement.tVoc);
+        Serial.println(F(" ppb"));
+      }
+
+      this->lastSensorMeasurement = millis();
+    }
+
     int8_t wiFiQuality = 0;
     WiFiManager::GetWifiQuality(wiFiQuality);
 
@@ -122,51 +166,6 @@ uint8_t WeatherStation::backgroundTaskLoop() {
   }
 
   this->mqttClient.loop();
-
-  if(millis() - this->lastSensorMeasurement > kSensorMeasurementInterval) {
-    environmental::Measurement measurement;
-
-    // If it didn't succeed, show last temperature.
-    this->didMeasureTemperature = this->sensor.measure(measurement);
-    if(this->didMeasureTemperature) {
-      // if the temperature is changed by more then 100 degrees celcius,
-      // it's probably an invalid reading, so skip.
-      if(std::abs(this->measurement.temperature - measurement.temperature) < 100) {
-        this->measurement = measurement;
-
-        Serial.print(F("weather station: read environmental sensor: temperature="));
-        Serial.print(this->measurement.temperature);
-        Serial.print(F(" pressure="));
-        Serial.print(this->measurement.pressure);
-        Serial.print(F(" humidity="));
-        Serial.println(this->measurement.humidity);
-
-        // Improves quality of CO2 measurement.
-        this->airQuality.setHumidity(this->measurement.humidity);
-      } else {
-        Serial.print(F("weather station: read invalid data: temperature="));
-        Serial.print(measurement.temperature);
-        Serial.print(F(" pressure="));
-        Serial.print(measurement.pressure);
-        Serial.print(F(" humidity="));
-        Serial.println(measurement.humidity);
-      }
-    }
-
-    environmental::AirQualityMeasurement airQualityMeasurement;
-    this->didMeasureAirQuality = this->airQuality.measure(airQualityMeasurement);
-    if(this->didMeasureAirQuality) {
-      this->airQualityMeasurement = airQualityMeasurement;
-
-      Serial.print(F("weather station: read airquality sensor: eCO2="));
-      Serial.print(this->airQualityMeasurement.eCo2);
-      Serial.print(F(" ppm TVOC="));
-      Serial.print(this->airQualityMeasurement.tVoc);
-      Serial.println(F(" ppb"));
-    }
-
-    this->lastSensorMeasurement = millis();
-  }
 
   if (xSemaphoreTake(WeatherStation::ShortIntervalTimerSemaphore, 0) == pdTRUE) {
     Serial.print(F("Short fired. WeatherStation::backgroundTaskLoop running on core "));
