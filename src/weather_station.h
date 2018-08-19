@@ -10,7 +10,6 @@
 #include "wireless/wifi_manager.h"
 #include "environmental/sensor.h"
 #include "environmental/airquality.h"
-// #include "Adafruit_SGP30.h"
 
 #ifndef WEATHER_STATION_H_
 #define WEATHER_STATION_H_
@@ -27,10 +26,6 @@ private:
   static const int kMaxNTPTimeRetry = 3;
 
   TwoWire w0;
-  // TwoWire w1;
-
-  // boolean sgpFound = false;
-  // Adafruit_SGP30 sgp;
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
   WiFiClientSecure wifiClient;

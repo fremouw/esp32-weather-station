@@ -22,7 +22,6 @@ void WeatherStation::setup() {
   // digitalWrite(13, HIGH);
 
   this->w0.begin(WSConfig::kI2cSdaPin, WSConfig::kI2cSclPin, 100000);
-  // this->w1.begin(WSConfig::kI2cTemperatureSdaPin, WSConfig::kI2cTemperatureSclPin, 100000);
 
   this->weatherDisplay.setup();
 
