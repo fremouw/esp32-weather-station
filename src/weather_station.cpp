@@ -191,11 +191,21 @@ uint8_t WeatherStation::backgroundTaskLoop() {
   }
 
   if(this->wantsToUpdateTime) {
-    this->didSetTime = timeClient.update();
+    this->timeClient.update([this](bool success) {
+      this->didSetTime = success;
 
-    if(this->didSetTime) {
-      this->wantsToUpdateTime = false;
-    }
+      if (success) {
+          Serial.println(F("did update time."));
+
+          this->wantsToUpdateTime = false;
+      }
+    });
+
+    // this->didSetTime = timeClient.update();
+    //
+    // if(this->didSetTime) {
+    //   this->wantsToUpdateTime = false;
+    // }
   } else if(this->wantsToUpdateWeather) {
     this->wantsToUpdateWeather = false;
 
