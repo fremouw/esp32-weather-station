@@ -80,6 +80,7 @@ void TimeClient::setup(const String& ntpServer, const uint16_t port, const int t
 
     time_t localTime;
 
+    // @ToDo make configurable.
     TimeChangeRule euCET  = { "CET", Last, Sun, Oct, 2, 60 };
     TimeChangeRule euCEST = { "CEST", Last, Sun, Mar, 2, 120 };
 
