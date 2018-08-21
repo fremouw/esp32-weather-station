@@ -10,6 +10,7 @@
 #include "wireless/wifi_manager.h"
 #include "environmental/sensor.h"
 #include "environmental/airquality.h"
+#include "storage/persistent.h"
 
 #ifndef WEATHER_STATION_H_
 #define WEATHER_STATION_H_
@@ -25,6 +26,7 @@ private:
   static const int kSensorMeasurementInterval = 5000;
   static const int kMaxNTPTimeRetry = 3;
 
+  Storage::Persistent store;
   TwoWire w0;
   WiFiManager& wifiManager;
   wunderground::Client weatherClient;
@@ -51,18 +53,21 @@ private:
   static volatile SemaphoreHandle_t ShortIntervalTimerSemaphore;
   static volatile SemaphoreHandle_t MediumIntervalTimerSemaphore;
   static volatile SemaphoreHandle_t LongIntervalTimerSemaphore;
+  static volatile SemaphoreHandle_t ButtonPressSemaphore;
 
   bool mqttIsEnabled = false;
   bool wantsToPushTemperature = false;
   bool wantsToUpdateWeather = false;
   bool wantsToUpdateTime = false;
 
+  void storeAirQualityBaseine();
   void onConnected();
   uint8_t backgroundTaskLoop();
   static void StaticBackgroundTask(void* parameter);
   static void IRAM_ATTR OnShortIntervalTimer();
   static void IRAM_ATTR OnMediumIntervalTimer();
   static void IRAM_ATTR OnLongIntervalTimer();
+  static void OnButtonPressInterrupt();
 };
 
 #endif // WEATHER_STATION_H_

@@ -13,6 +13,10 @@ namespace environmental {
       Serial.println(sgp.serialnumber[2], HEX);
 
       this->humidity = 0;
+
+      if(baseline.eCo2 > 0 && baseline.tVoc > 0) {
+        this->sgp.setIAQBaseline(baseline.eCo2, baseline.tVoc);
+      }
     }
   }
 
@@ -24,7 +28,7 @@ namespace environmental {
     this->humidity = humidity;
   }
 
-  bool AirQuality::getBaseline(environmental::AirQualityMeasurement &measurement) {
+  bool AirQuality::getBaseline(environmental::AirQualityMeasurement& measurement) {
     if(!this->isEnabled) {
       return false;
     }
@@ -47,7 +51,15 @@ namespace environmental {
     return false;
   }
 
-  bool AirQuality::measure(environmental::AirQualityMeasurement &measurement) {
+  void AirQuality::setBaseline(const environmental::AirQualityMeasurement& measurement) {
+    this->baseline = baseline;
+
+    if(this->isEnabled) {
+      this->sgp.setIAQBaseline(measurement.eCo2, measurement.tVoc);
+    }
+  }
+
+  bool AirQuality::measure(environmental::AirQualityMeasurement& measurement) {
     if(!this->isEnabled) {
       // Try to find BME280.
       setup();

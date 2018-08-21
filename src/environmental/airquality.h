@@ -18,6 +18,7 @@ namespace environmental {
       uint32_t humidity = 0;
       Adafruit_SGP30 sgp;
       TwoWire& wire;
+      AirQualityMeasurement baseline = { 0, 0 };
 
     public:
       AirQuality(TwoWire& wire): wire(wire) {
@@ -27,8 +28,9 @@ namespace environmental {
 
       void setup();
       bool enabled();
-      bool getBaseline(environmental::AirQualityMeasurement &measurement);
-      bool measure(environmental::AirQualityMeasurement &measurement);
+      bool getBaseline(environmental::AirQualityMeasurement& measurement);
+      void setBaseline(const environmental::AirQualityMeasurement& measurement);
+      bool measure(environmental::AirQualityMeasurement& measurement);
   };
 }
 #endif // AIRQUALITY_H_

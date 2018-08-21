@@ -9,6 +9,7 @@
 volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
+volatile SemaphoreHandle_t WeatherStation::ButtonPressSemaphore = xSemaphoreCreateBinary();
 
 WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wifiManager(_wifiManager), display(WSConfig::kSpiResetPin, WSConfig::kSpiDcPin, WSConfig::kSpiCsPin), ui(&display), weatherClient(WSConfig::kWundergroundApiKey, WSConfig::kWundergroundLanguage, WSConfig::kWundergroundLocation), weatherDisplay(display, ui, timeClient, conditions, measurement, airQualityMeasurement), mqttClient(wifiClient), airQuality(w0) {
 
@@ -21,6 +22,10 @@ void WeatherStation::setup() {
   // pinMode(13, OUTPUT);
   // digitalWrite(13, HIGH);
 
+  pinMode(WSConfig::kButtonPin, INPUT_PULLDOWN);
+
+  attachInterrupt(digitalPinToInterrupt(WSConfig::kButtonPin), WeatherStation::OnButtonPressInterrupt, FALLING);
+
   this->w0.begin(WSConfig::kI2cSdaPin, WSConfig::kI2cSclPin, 100000);
 
   this->weatherDisplay.setup();
@@ -32,6 +37,22 @@ void WeatherStation::setup() {
   this->sensor.setup();
 
   this->airQuality.setup();
+
+  this->store.loadConfig();
+
+  environmental::AirQualityMeasurement baselineMeasurement = { 0, 0 };
+  this->store.get("ws.aq.tvoc", baselineMeasurement.tVoc);
+  this->store.get("ws.aq.eco2", baselineMeasurement.eCo2);
+
+  Serial.print(F("info: get air quality baseline from EEPROM: eCO2=0x"));
+  Serial.print(baselineMeasurement.eCo2, HEX);
+  Serial.print(F(", TVOC=0x"));
+  Serial.print(baselineMeasurement.tVoc, HEX);
+  Serial.println(F(" ppb"));
+
+  if(baselineMeasurement.eCo2 > 0 && baselineMeasurement.tVoc > 0) {
+    this->airQuality.setBaseline(baselineMeasurement);
+  }
 
   xTaskCreatePinnedToCore(
     WeatherStation::StaticBackgroundTask,   /* Task function. */
@@ -142,6 +163,25 @@ void WeatherStation::loop() {
   }
 }
 
+void WeatherStation::storeAirQualityBaseine() {
+  Serial.println(F("WeatherStation::storeAirQualityBaseine"));
+
+  environmental::AirQualityMeasurement baselineMeasurement;
+  this->airQuality.getBaseline(baselineMeasurement);
+
+  Serial.print(F("info: storing air quality baseline in EEPROM: eCO2=0x"));
+  Serial.print(baselineMeasurement.eCo2, HEX);
+  Serial.print(F(" ppm, TVOC=0x"));
+  Serial.print(baselineMeasurement.tVoc, HEX);
+  Serial.println(F(" ppb"));
+
+  this->store.set("ws.aq.tvoc", baselineMeasurement.tVoc);
+  this->store.set("ws.aq.eco2", baselineMeasurement.eCo2);
+
+  //
+  this->store.saveConfig();
+}
+
 void WeatherStation::onConnected() {
   Serial.println(F("weatherstation: got interwebz!"));
 
@@ -190,6 +230,13 @@ uint8_t WeatherStation::backgroundTaskLoop() {
     this->wantsToUpdateTime = true;
   }
 
+  if (xSemaphoreTake(WeatherStation::ButtonPressSemaphore, 0) == pdTRUE) {
+    Serial.print(F("OnButtonPressSemaphore. WeatherStation::backgroundTaskLoop running on core "));
+    Serial.println(xPortGetCoreID());
+
+    this->storeAirQualityBaseine();
+  }
+
   if(this->wantsToUpdateTime) {
     this->timeClient.update([this](bool success) {
       this->didSetTime = success;
@@ -200,12 +247,6 @@ uint8_t WeatherStation::backgroundTaskLoop() {
           this->wantsToUpdateTime = false;
       }
     });
-
-    // this->didSetTime = timeClient.update();
-    //
-    // if(this->didSetTime) {
-    //   this->wantsToUpdateTime = false;
-    // }
   } else if(this->wantsToUpdateWeather) {
     this->wantsToUpdateWeather = false;
 
@@ -298,4 +339,16 @@ void WeatherStation::StaticBackgroundTask(void* parameter) {
   }
 
   vTaskDelete( NULL );
+}
+
+void WeatherStation::OnButtonPressInterrupt() {
+  Serial.println(F("debug: button pressed!"));
+
+  static unsigned long timeout = millis();
+  if(millis() - timeout < 3000) {
+    return;
+  }
+
+  timeout = millis();
+  xSemaphoreGiveFromISR(WeatherStation::ButtonPressSemaphore, NULL);
 }
