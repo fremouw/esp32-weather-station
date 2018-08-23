@@ -6,6 +6,9 @@
 #include <cmath>
 #include "config.h"
 
+const char WeatherStation::kTVOCKey[] PROGMEM = "ws.aq.tvoc";
+const char WeatherStation::kECO2Key[] PROGMEM = "ws.aq.eco2";
+
 volatile SemaphoreHandle_t WeatherStation::ShortIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::MediumIntervalTimerSemaphore = xSemaphoreCreateBinary();
 volatile SemaphoreHandle_t WeatherStation::LongIntervalTimerSemaphore = xSemaphoreCreateBinary();
@@ -19,9 +22,6 @@ WeatherStation::WeatherStation(WiFiManager& _wifiManager): w0(0), sensor(w0), wi
 }
 
 void WeatherStation::setup() {
-  // pinMode(13, OUTPUT);
-  // digitalWrite(13, HIGH);
-
   pinMode(WSConfig::kButtonPin, INPUT_PULLDOWN);
 
   attachInterrupt(digitalPinToInterrupt(WSConfig::kButtonPin), WeatherStation::OnButtonPressInterrupt, FALLING);
@@ -41,16 +41,16 @@ void WeatherStation::setup() {
   this->store.loadConfig();
 
   environmental::AirQualityMeasurement baselineMeasurement = { 0, 0 };
-  this->store.get("ws.aq.tvoc", baselineMeasurement.tVoc);
-  this->store.get("ws.aq.eco2", baselineMeasurement.eCo2);
-
-  Serial.print(F("info: get air quality baseline from EEPROM: eCO2=0x"));
-  Serial.print(baselineMeasurement.eCo2, HEX);
-  Serial.print(F(", TVOC=0x"));
-  Serial.print(baselineMeasurement.tVoc, HEX);
-  Serial.println(F(" ppb"));
+  this->store.get(kTVOCKey, baselineMeasurement.tVoc);
+  this->store.get(kECO2Key, baselineMeasurement.eCo2);
 
   if(baselineMeasurement.eCo2 > 0 && baselineMeasurement.tVoc > 0) {
+    Serial.print(F("info: get air quality baseline from EEPROM: eCO2=0x"));
+    Serial.print(baselineMeasurement.eCo2, HEX);
+    Serial.print(F(", TVOC=0x"));
+    Serial.print(baselineMeasurement.tVoc, HEX);
+    Serial.println(F(" ppb"));
+
     this->airQuality.setBaseline(baselineMeasurement);
   }
 
@@ -175,8 +175,8 @@ void WeatherStation::storeAirQualityBaseine() {
   Serial.print(baselineMeasurement.tVoc, HEX);
   Serial.println(F(" ppb"));
 
-  this->store.set("ws.aq.tvoc", baselineMeasurement.tVoc);
-  this->store.set("ws.aq.eco2", baselineMeasurement.eCo2);
+  this->store.set(kTVOCKey, baselineMeasurement.tVoc);
+  this->store.set(kECO2Key, baselineMeasurement.eCo2);
 
   //
   this->store.saveConfig();
@@ -285,12 +285,12 @@ uint8_t WeatherStation::backgroundTaskLoop() {
       this->timeClient.getUnixTime(unixTime);
 
       JsonObject& root = jsonBuffer.createObject();
-      root["temperature"] = this->measurement.temperature;
-      root["humidity"] = this->measurement.humidity;
-      root["pressure"] = this->measurement.pressure;
-      root["eco2"] = this->airQualityMeasurement.eCo2;
-      root["tvoc"] = this->airQualityMeasurement.tVoc;
-      root["time"] = unixTime;
+      root[F("temperature")] = this->measurement.temperature;
+      root[F("humidity")] = this->measurement.humidity;
+      root[F("pressure")] = this->measurement.pressure;
+      root[F("eco2")] = this->airQualityMeasurement.eCo2;
+      root[F("tvoc")] = this->airQualityMeasurement.tVoc;
+      root[F("time")] = unixTime;
 
       String msg;
       root.printTo(msg);

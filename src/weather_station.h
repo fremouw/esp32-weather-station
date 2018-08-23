@@ -25,6 +25,8 @@ public:
 private:
   static const int kSensorMeasurementInterval = 5000;
   static const int kMaxNTPTimeRetry = 3;
+  static const char kTVOCKey[] PROGMEM;
+  static const char kECO2Key[] PROGMEM;
 
   Storage::Persistent store;
   TwoWire w0;
