@@ -13,3 +13,9 @@ Please see the config.example.h to configure your board.
 My version uses a [2.42" OLED display](https://www.ebay.com/itm/SPI-2-42-OLED-128x64-Graphic-OLED-Module-Display-Arduino-PIC-AVR-Multi-wii/162156495387?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2060353.m2749.l2649) over SPI. A Bosch BME280 chip for measuring the temperature, humidity and air pressure. The SGP30 is used to measure the air quality, eCO2 (equivalent calculated carbon-dioxide) and TVOC (Total Volatile Organic Compound) concentration. Both these sensors are attached using a 4-wire molex connector, to keep some distance from the board and display; as these generate some heat which influences the sensors.
 
 The ESP32 board used is a DOIT ESP32 Devkit v1, you can find these on ebay.
+
+### Schematic and board
+
+![Schematic](https://raw.githubusercontent.com/fremouw/esp32-weather-station/master/hardware/v1.0/schematic.png)
+
+![Board](https://raw.githubusercontent.com/fremouw/esp32-weather-station/master/hardware/v1.0/board.png)
