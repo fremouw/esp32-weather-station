@@ -19,6 +19,9 @@ namespace WSConfig {
   const uint8_t kSpiDcPin = 15;
   const uint8_t kSpiCsPin = 5;
 
+  // Button, not yet used.
+  const uint8_t kButtonPin = 32;
+
   // NTP Timeserver to use.
   const char kNtpServerName[] PROGMEM = "<ntpserver>";
 
