@@ -1,11 +1,14 @@
 #include "persistent.h"
 #include <Arduino.h>
+#include <esp_log.h>
+
+static const char LogTag[] PROGMEM = "Persistent";
 
 namespace Storage {
   #define _STORAGE_CONFIGURATION_START 3
 
   void Persistent::clear() {
-    Serial.println(F("Persistent::clear()"));
+    ESP_LOGI(LogTag, "clearing EEPROM.");
 
     for (int i = 0; i < kEEPROMSize; ++i) {
       EEPROM.write(i, 0x0);
@@ -17,7 +20,7 @@ namespace Storage {
   }
 
   void Persistent::loadConfig() {
-    Serial.println(F("Persistent::loadConfig()"));
+    ESP_LOGI(LogTag, "read data from EEPROM.");
 
     EEPROM.begin(kEEPROMSize);
 
@@ -28,14 +31,14 @@ namespace Storage {
         *((char *)&config + t) = EEPROM.read(t);
       }
     } else {
-      Serial.println(F("No Config."));
+      ESP_LOGI(LogTag, "no data stored in EEPROM.");
     }
 
     JsonObject& _root = jsonBuffer.parseObject(config.jsonString);
 
     for (auto & it : _root) {
       // We create a copy of the key/value pair.
-      root.set(String(it.key), String(it.value.asString()));
+      root.set(String(it.key), String(it.value.as<char*>()));
     }
   }
 
