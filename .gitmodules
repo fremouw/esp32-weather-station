@@ -1,3 +1,6 @@
 [submodule "lib/Adafruit_SGP30.git"]
 	path = lib/Adafruit_SGP30.git
 	url = https://fremouw@github.com/fremouw/Adafruit_SGP30.git
+[submodule "lib/esp8266-oled-ssd1306.git"]
+	path = lib/esp8266-oled-ssd1306.git
+	url = https://github.com/fremouw/esp8266-oled-ssd1306.git
