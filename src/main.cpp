@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <Wire.h>
+#include <WiFi.h>
+#include <esp_log.h>
 #include "config.h"
 #include "weather_station.h"
 #include "wireless/wifi_manager.h"
@@ -11,7 +12,8 @@ WeatherStation weatherStation(wifiManager);
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.print(F("\r\nBooting... v1.0-"));
+
+  Serial.print(F("\r\nBooting Weather Station v1.0-"));
   Serial.print(APP_VERSION);
   Serial.print(F(" ("));
   Serial.print(__TIMESTAMP__);
@@ -30,6 +32,12 @@ void setup() {
   Serial.print(F("Flash: Size="));
   Serial.print(ESP.getFlashChipSize());
   Serial.println(F(" bytes"));
+  Serial.print(F("Memory: Total="));
+  Serial.print(ESP.getHeapSize());
+  Serial.println(F(" bytes"));
+  Serial.print(F("Memory: Free="));
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(F(" bytes"));
 
   weatherStation.setup();
 
@@ -37,5 +45,12 @@ void setup() {
 }
 
 void loop() {
+  static bool printRunningCore = false;
+  if(!printRunningCore) {
+    printRunningCore = true;
+    Serial.print(F("Arduino running core: "));
+    Serial.println(xPortGetCoreID());
+  }
+
   weatherStation.loop();
 }

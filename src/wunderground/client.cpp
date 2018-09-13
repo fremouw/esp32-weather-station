@@ -1,9 +1,12 @@
 #include "client.h"
 #include <ArduinoJson.h>
 #include <WiFiClientSecure.h>
-#include "verisign_ca.h"
+#include <esp_log.h>
+
+static const char LogTag[] PROGMEM = "WeatherUnderground";
 
 namespace wunderground {
+  // Client::Client() {}
   Client::Client(const String& apiKey,
                  const String& language,
                  const String& country,
@@ -17,80 +20,39 @@ namespace wunderground {
     query = "/q/" + latLon;
   }
 
-  void Client::update(const std::function<void(bool, Conditions&)>callback) {
-    String path = "/api/" + apiKey + "/conditions/forecast/lang:" + language + query + ".json";
-    bool success = false;
+  Client::~Client() {}
 
-    // WiFiClientSecure client;
-    WiFiClient client;
+  void Client::update(const std::function<void(bool, Conditions&)> callback) {
+    String uri = String(kApiUri) + "/api/" + apiKey + "/conditions/forecast/lang:" + language + query + ".json";
 
-    //client.setCACert(kVeriSignRootCA);
+    http.get(uri, [this, callback](bool success, Http::Response response) {
+      ESP_LOGI(LogTag, "get callback.");
 
-    if (client.connect(kApiUrl, kApiUrlPort)) {
-      String request = \
-        "GET " + path + " HTTP/1.1\r\n" \
-        "Host: " + kApiUrl + "\r\n" \
-        "Connection: close\r\n\r\n";
+      // auto it = response.headers.begin();
+      // while(it != response.headers.end()) {
+      //   Serial.print(it->first);
+      //   Serial.print("=");
+      //   Serial.println(it->second);
+      //   it++;
+      // }
 
-      client.write(request.c_str(), request.length());
+      DynamicJsonBuffer jsonBuffer(kDefaultJsonBufferSize);
+      JsonVariant variant = jsonBuffer.parse(response.body.c_str());
 
-      size_t jsonBufferSize = kDefaultJsonBufferSize;
-      unsigned long timeout = millis();
-      while(client.connected()) {
-        if(client.available()) {
-          static const char kContentLength[] PROGMEM = "Content-Length: ";
+      if (variant.is<JsonObject>()) {
+        ESP_LOGI(LogTag, "response is JSON object.");
 
-          // Find and get content length from header.
-          bool foundContentLength = client.find(kContentLength);
-          if(!foundContentLength) {
-            Serial.println(F("error: could not find content-length in HTTP response header."));
-            break;
-          }
+        JsonObject& root = variant;
 
-          // Read content length and multiply with a factor, this should cover
-          // the ArduinoJson overhead.
-          String contentLength = client.readStringUntil('\r');
-          const long length = contentLength.toInt();
-          if(length > 0) {
-            jsonBufferSize = length * 1.5;
-          }
+        ESP_LOGI(LogTag, "response version: %s.", root["response"]["version"].as<String>().c_str());
 
-          // Skip all the headers.
-          static const char kEndOfHeaders[] PROGMEM = "\r\n\r\n";
-
-          bool foundBody = client.find(kEndOfHeaders);
-          if(!foundBody) {
-            Serial.println(F("error: could not find response body."));
-            break;
-          }
-
-          DynamicJsonBuffer jsonBuffer(jsonBufferSize);
-
-          JsonObject& root = jsonBuffer.parse(client);
-
-          if(!root.success()) {
-            Serial.println(F("error: could not parse JSON response."));
-            break;
-          }
-
-          this->conditions.parse(root);
-
-          success = true;
-
-          break;
-        }
-
-        if (millis() - timeout > kHTTPTimeout) {
-          Serial.println(F("error: unable to connect to Weather Underground, timeout."));
-          break;
-        }
-
-        delay(50);
+        this->conditions.parse(root);
+      } else {
+        ESP_LOGE(LogTag, "invalid JSON response.");
+        success = false;
       }
 
-      client.stop();
-    }
-
-    callback(success, this->conditions);
+      callback(success, this->conditions);
+    });
   }
 }

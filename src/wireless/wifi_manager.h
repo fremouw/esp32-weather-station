@@ -28,9 +28,8 @@ class WiFiManager {
     bool isConnecting;
     bool isSleeping;
 
-    hw_timer_t* wifiRetryTimer;
-
     static volatile SemaphoreHandle_t WiFiRetrySemaphore;
+    static volatile SemaphoreHandle_t WiFiForceRetrySemaphore;
 
   private:
     void connect();

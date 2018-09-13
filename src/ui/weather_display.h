@@ -1,47 +1,74 @@
 #include <OLEDDisplayUi.h>
-// #include <SSD1306Spi.h>
 #include <SSD1306Wire.h>
+#include "ntp/ntp_client.h"
 #include "wunderground/Conditions.h"
-#include "environmental/sensor.h"
-#include "environmental/airquality.h"
-#include "time/time_client.h"
+#include "sensors/environment.h"
+#include "sensors/air_quality.h"
 
 #ifndef UI_WEATHER_DISPLAY_H_
 #define UI_WEATHER_DISPLAY_H_
 
+namespace Frames {
+  enum {
+    eBootScreen = 1 << 0,
+    eTimeAndDate = 1 << 1,
+    eWeatherReport = 1 << 2,
+    eIndoorSensors = 1 << 3,
+  };
+
+  typedef uint16_t Flags;
+};
+
 class WeatherDisplay {
   public:
-    WeatherDisplay(OLEDDisplay& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement, environmental::AirQualityMeasurement& airQualityMeasurement);
+    WeatherDisplay(OLEDDisplay& display
+      , Ntp::Client& ntpClient
+      , wunderground::Conditions& conditions
+      , Sensors::Environment::Measurement& environmentMeasurement
+      , Sensors::AirQuality::Measurement& airQualityMeasurement);
 
     void setup();
     int update();
 
-    void setShowUpdateScreen(const bool isUpdating);
-    void setShowBootScreen(const bool showBootScreen);
+    void addFrame(const Frames::Flags frame);
+    void removeFrame(const Frames::Flags frame);
+
     void setWifiQuality(const int8_t quality);
-    void drawBootScreen();
-    void drawOtaProgress(const unsigned int progress, const unsigned int total);
+    bool isInTransition();
   private:
+    Frames::Flags framesEnabled = Frames::eBootScreen;
+
+    static const size_t kMaxFrameSize = 5;
+    FrameCallback frames[kMaxFrameSize];
+
     OLEDDisplay& display;
-    OLEDDisplayUi& ui;
-    TimeClient& timeClient;
-    environmental::Measurement& measurement;
-    environmental::AirQualityMeasurement& airQualityMeasurement;
+    OLEDDisplayUi ui;
+    Ntp::Client& ntpClient;
     wunderground::Conditions& conditions;
+    Sensors::Environment::Measurement& environmentMeasurement;
+    Sensors::AirQuality::Measurement& airQualityMeasurement;
 
     int numberOfFrames;
     int8_t wifiQuality;
-    volatile bool showBootScreen = false;
-    volatile bool showUpdateScreen = false;
     int progress;
     int progressDirection;
 
-    static void DrawDateTime(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
+    void updateFrames();
+    void drawBootScreen();
+
+    static void DrawDateTime(OLEDDisplay *display,
+                             OLEDDisplayUiState *state,
+                             int16_t x,
+                             int16_t y);
     static void DrawCurrentWeather(OLEDDisplay        *display,
                                    OLEDDisplayUiState *state,
                                    int16_t x,
                                    int16_t y);
-    static void DrawForecastDetails(const WeatherDisplay* self, OLEDDisplay *display, int x, int y, int dayIndex);
+    static void DrawForecastDetails(const WeatherDisplay* self,
+                                    OLEDDisplay *display,
+                                    int x,
+                                    int y,
+                                    int dayIndex);
     static void DrawIndoorTemperature(OLEDDisplay        *display,
                                       OLEDDisplayUiState *state,
                                       int16_t x,
@@ -50,10 +77,10 @@ class WeatherDisplay {
                              OLEDDisplayUiState *state,
                              int16_t x,
                              int16_t y);
-
-    static void DrawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState *state);
-
-    static void ConvertIconTextToMeteoconIcon(const String& iconText, String& icon);
+    static void DrawHeaderOverlay(OLEDDisplay *display,
+                                  OLEDDisplayUiState *state);
+    static void ConvertIconTextToMeteoconIcon(const String& iconText,
+                                              String& icon);
 };
 
 #endif // _UI_WEATHER_DISPLAY_H_

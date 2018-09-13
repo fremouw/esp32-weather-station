@@ -6,6 +6,7 @@
 static std::list<WiFiEventHandler> sEventList;
 
 volatile SemaphoreHandle_t WiFiManager::WiFiRetrySemaphore = xSemaphoreCreateBinary();
+volatile SemaphoreHandle_t WiFiManager::WiFiForceRetrySemaphore = xSemaphoreCreateBinary();;
 
 WiFiManager::WiFiManager() {
 }
@@ -21,10 +22,7 @@ void WiFiManager::setup(const char* ssid, const char* password) {
 
 void WiFiManager::loop() {
   bool shouldRetry = xSemaphoreTake(WiFiManager::WiFiRetrySemaphore, 0) == pdTRUE;
-
-  // if(WiFi.status() == WL_CONNECTED) {
-  //   // ArduinoOTA.handle();
-  // }
+  bool forceRetry = xSemaphoreTake(WiFiManager::WiFiForceRetrySemaphore, 0) == pdTRUE;
 
   if(this->isConnecting && WiFi.status() == WL_CONNECTED) {
     Serial.println("wireless: connected!");
@@ -40,6 +38,10 @@ void WiFiManager::loop() {
       (*handler)();
       ++it;
     }
+  } else if(forceRetry) {
+    Serial.println("wireless: forced reconnect...");
+
+    this->connect();
   } else if(this->isConnecting && millis() - this->connectTimeout > 15000) {
     Serial.println("wireless: timeout: could not connect...");
 
@@ -85,6 +87,9 @@ void WiFiManager::GetWifiQuality(int8_t& quality) {
 }
 
 void WiFiManager::connect() {
+  Serial.print(F("wireless: trying to connect to: "));
+  Serial.println(this->ssid);
+
   this->isSleeping = false;
   this->isConnecting = true;
   this->connectTimeout = millis();
@@ -96,14 +101,27 @@ void WiFiManager::connect() {
 void WiFiManager::OnWiFiEvent(WiFiEvent_t event) {
   switch(event) {
     case SYSTEM_EVENT_STA_GOT_IP:
-      Serial.print("wireless: connected, IP address: ");
+      Serial.print(F("wireless: event: connected, IP address: "));
       Serial.println(WiFi.localIP());
 
       break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-      Serial.println("wireless: lost connection.");
+      Serial.println(F("wireless: event: lost connection."));
 
       xSemaphoreGiveFromISR(WiFiManager::WiFiRetrySemaphore, NULL);
       break;
+    case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
+      Serial.println(F("wireless: event: timeout."));
+
+      xSemaphoreGiveFromISR(WiFiManager::WiFiForceRetrySemaphore, NULL);
+      break;
+    case SYSTEM_EVENT_STA_LOST_IP:
+      Serial.println(F("wireless: event: lost IP."));
+
+      xSemaphoreGiveFromISR(WiFiManager::WiFiForceRetrySemaphore, NULL);
+    break;
+    default:
+      Serial.print(F("wireless: event: unhandled event: "));
+      Serial.println(event);
   }
 }

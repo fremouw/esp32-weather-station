@@ -2,9 +2,22 @@
 #include "fonts/lato.h"
 #include "fonts/meteocons.h"
 #include "weather_station_images.h"
+#include <vector>
+#include <esp_log.h>
 
-WeatherDisplay::WeatherDisplay(OLEDDisplay& display, OLEDDisplayUi& ui, TimeClient& timeClient, wunderground::Conditions& conditions, environmental::Measurement& measurement, environmental::AirQualityMeasurement& airQualityMeasurement) : display(display), ui(ui), timeClient(timeClient), conditions(conditions),
-        measurement(measurement), airQualityMeasurement(airQualityMeasurement) {}
+static const char LogTag[] PROGMEM = "WeatherDisplay";
+
+WeatherDisplay::WeatherDisplay(OLEDDisplay& display
+  , Ntp::Client& ntpClient
+  , wunderground::Conditions& conditions
+  , Sensors::Environment::Measurement& environmentMeasurement
+  , Sensors::AirQuality::Measurement& airQualityMeasurement)
+  : display(display)
+    , ui(&display)
+    , ntpClient(ntpClient)
+    , conditions(conditions)
+    , environmentMeasurement(environmentMeasurement)
+    , airQualityMeasurement(airQualityMeasurement) {}
 
 void WeatherDisplay::setup() {
   ui.setTargetFPS(60);
@@ -22,13 +35,7 @@ void WeatherDisplay::setup() {
 
   ui.getUiState()->userData = this;
 
-  static FrameCallback frames[] =
-  { WeatherDisplay::DrawDateTime, WeatherDisplay::DrawCurrentWeather,
-    WeatherDisplay::DrawForecast, WeatherDisplay::DrawIndoorTemperature };
-  numberOfFrames = 4;
-
-  //
-  ui.setFrames(frames, numberOfFrames);
+  this->updateFrames();
 
   static OverlayCallback overlays[] = { WeatherDisplay::DrawHeaderOverlay };
   static int numberOfOverlays       = 1;
@@ -37,22 +44,26 @@ void WeatherDisplay::setup() {
 
   ui.init();
 
-  // display.setI2cAutoInit(true);
   display.flipScreenVertically();
 }
 
-void WeatherDisplay::setShowUpdateScreen(const bool showUpdateScreen) {
-  this->showUpdateScreen = showUpdateScreen;
+void WeatherDisplay::addFrame(const Frames::Flags frame) {
+  Frames::Flags currentframesEnabled = this->framesEnabled;
+
+  currentframesEnabled |= frame;
+
+  //
+  if(this->framesEnabled != currentframesEnabled) {
+    this->framesEnabled = currentframesEnabled;
+
+    this->updateFrames();
+  }
 }
 
-void WeatherDisplay::setShowBootScreen(const bool showBootScreen) {
-  this->showBootScreen = showBootScreen;
+void WeatherDisplay::removeFrame(const Frames::Flags frame) {
+  this->framesEnabled &= ~frame;
 
-  if(this->showBootScreen) {
-    this->progress = 0;
-    this->progressDirection = 0;
-    this->drawBootScreen();
-  }
+  this->updateFrames();
 }
 
 void WeatherDisplay::setWifiQuality(const int8_t quality) {
@@ -60,41 +71,31 @@ void WeatherDisplay::setWifiQuality(const int8_t quality) {
 }
 
 int WeatherDisplay::update() {
-  if(this->showUpdateScreen) {
-    // this->drawOtaProgress(const unsigned int progress, const unsigned int total)
-  } else if(this->showBootScreen) {
+  if(this->framesEnabled & Frames::eBootScreen) {
     this->drawBootScreen();
   } else {
-    return ui.update();
+    return this->ui.update();
   }
 
   return 800;
 }
 
+bool WeatherDisplay::isInTransition() {
+  OLEDDisplayUiState* uiState = this->ui.getUiState();
+
+  if (uiState != NULL && uiState->frameState == IN_TRANSITION) {
+    return true;
+  }
+
+  return false;
+}
+
 void WeatherDisplay::drawBootScreen() {
   display.clear();
   display.setTextAlignment(TEXT_ALIGN_CENTER);
-  // display.drawProgressBar(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t progress)
-  // display.setFont(ArialMT_Plain_10);
-  // display.drawString(64, 10, F("Booting"));
-  // display.drawProgressBar(2, 28, 124, 10, progress++);
 
-  // if(progressDirection == 0 && progress > 16) {
-  //   progressDirection = 1;
-  // } else if (progressDirection == 1 && progress < 8) {
-  //   progressDirection = 0;
-  // }
-  //
-  // if(progressDirection == 0) {
-  //   progress++;
-  // } else {
-  //   progress--;
-  // }
   progress++;
-  // // display.fillCircle(50, 35, progress);
-  // display.drawCircleQuads(50, 35, 16, progress);
-  // display.drawCircleQuads(50, 35, 8, progress);
-  // display.drawCircle(28, 28, progress);
+
   display.drawXbm(46, 30, 8, 8, progress % 3 == 0 ? activeSymbol2 : inactiveSymbol);
   display.drawXbm(60, 30, 8, 8, progress % 3 == 1 ? activeSymbol2 : inactiveSymbol);
   display.drawXbm(74, 30, 8, 8, progress % 3 == 2 ? activeSymbol2 : inactiveSymbol);
@@ -102,13 +103,39 @@ void WeatherDisplay::drawBootScreen() {
   display.display();
 }
 
-void WeatherDisplay::drawOtaProgress(const unsigned int progress, const unsigned int total) {
-  display.clear();
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
-  display.drawString(64, 10, F("OTA Update"));
-  display.drawProgressBar(2, 28, 124, 10, progress / (total / 100));
-  display.display();
+void WeatherDisplay::updateFrames() {
+  size_t frameIndex = 0;
+
+  if(this->framesEnabled & Frames::eTimeAndDate) {
+    this->frames[frameIndex++] = WeatherDisplay::DrawDateTime;
+  }
+
+  if(this->framesEnabled & Frames::eWeatherReport) {
+    this->frames[frameIndex++] = WeatherDisplay::DrawCurrentWeather;
+    this->frames[frameIndex++] = WeatherDisplay::DrawForecast;
+  }
+
+  if(this->framesEnabled & Frames::eIndoorSensors) {
+    this->frames[frameIndex++] = WeatherDisplay::DrawIndoorTemperature;
+  }
+
+  ESP_LOGI(LogTag, "update displayed frames, count=%d.", frameIndex);
+
+  //
+  if(frameIndex > 0) {
+    this->framesEnabled &= ~Frames::eBootScreen;
+
+    this->numberOfFrames = frameIndex;
+    ui.setFrames(this->frames, this->numberOfFrames);
+
+    if(frameIndex == 1) {
+      ui.disableAutoTransition();
+    } else {
+      ui.enableAutoTransition();
+    }
+  } else {
+    this->framesEnabled |= Frames::eBootScreen;
+  }
 }
 
 void WeatherDisplay::DrawHeaderOverlay(OLEDDisplay        *display,
@@ -128,10 +155,11 @@ void WeatherDisplay::DrawHeaderOverlay(OLEDDisplay        *display,
                         String(self->numberOfFrames));
 
     String time;
-    self->timeClient.getFormattedTime(time);
-    time = time.substring(0, 5);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->drawString(21, 54, time);
+    if(self->ntpClient.getFormattedTime(time)) {
+      time = time.substring(0, 5);
+      display->setTextAlignment(TEXT_ALIGN_LEFT);
+      display->drawString(21, 54, time);
+    }
 
     for (int8_t i = 0; i < 4; i++) {
       for (int8_t j = 0; j < 2 * (i + 1); j++) {
@@ -146,9 +174,18 @@ void WeatherDisplay::DrawHeaderOverlay(OLEDDisplay        *display,
     wunderground::Conditions::Observation observation;
     self->conditions.getCurrentObservation(observation);
 
-    float indoorTemperature = self->measurement.temperature;
+    String indoorTemperature = F("-");
+    String outdoorTemperature = F("-");
 
-    String temp = String(indoorTemperature, 1) + " | " + String(observation.temperature, 1) + "°C";
+    if(self->environmentMeasurement.temperature > 0) {
+      indoorTemperature = String(self->environmentMeasurement.temperature, 1);
+    }
+
+    if(observation.temperature > 0) {
+      outdoorTemperature = String(observation.temperature, 1);
+    }
+
+    String temp = indoorTemperature + F(" | ") + outdoorTemperature + F("°C");
     display->drawString(53, 54, temp);
 
     display->drawHorizontalLine(0, 52, 128);
@@ -170,15 +207,15 @@ void WeatherDisplay::DrawDateTime(OLEDDisplay        *display,
     display->setFont(ArialMT_Plain_10);
 
     String date;
-    self->timeClient.getFormattedDate(date);
-    int textWidth = display->getStringWidth(date);
+    self->ntpClient.getFormattedDate(date);
+    // int textWidth = display->getStringWidth(date);
 
     display->drawString(64 + x, 5 + y, date);
     display->setFont(ArialMT_Plain_24);
 
     String time;
-    self->timeClient.getFormattedTime(time);
-    textWidth = display->getStringWidth(time);
+    self->ntpClient.getFormattedTime(time);
+    // int textWidth = display->getStringWidth(time);
 
     display->drawString(64 + x, 15 + y, time);
     display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -188,7 +225,9 @@ void WeatherDisplay::DrawDateTime(OLEDDisplay        *display,
 
     uint16_t eco2 = self->airQualityMeasurement.eCo2;
     uint16_t tvoc = self->airQualityMeasurement.tVoc;
-    display->drawString(64 + x, 38 + y, String(eco2) + F("ppm | ") + String(tvoc) + F("ppb"));
+    if(eco2 > 0) {
+      display->drawString(64 + x, 38 + y, String(eco2) + F("ppm | ") + String(tvoc) + F("ppb"));
+    }
   }
 }
 
@@ -218,7 +257,7 @@ void WeatherDisplay::DrawCurrentWeather(OLEDDisplay        *display,
     String temp = String(observation.temperature, 1) + F("°C");
 
     display->drawString(52 + x, 15 + y, temp);
-    int tempWidth = display->getStringWidth(temp);
+    // int tempWidth = display->getStringWidth(temp);
 
     display->setFont(Meteocons_Plain_42);
     String weatherIcon;
@@ -248,20 +287,25 @@ void WeatherDisplay::DrawIndoorTemperature(OLEDDisplay        *display,
     display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->setFont(ArialMT_Plain_16);
 
-    float temperature = self->measurement.temperature;
-    float humidity    = self->measurement.humidity;
+    float temperature = self->environmentMeasurement.temperature;
+    float humidity    = self->environmentMeasurement.humidity;
     display->drawString(4 + x, 12 + y, String(temperature) + F("°C"));
     display->drawString(4 + x, 30 + y, String(humidity) + F("%H"));
 
     display->setFont(ArialMT_Plain_10);
-    float pressure = self->measurement.pressure;
+    float pressure = self->environmentMeasurement.pressure;
     display->drawString(70 + x, 14 + y, String(pressure) + F("hPa"));
 
     uint16_t eco2 = self->airQualityMeasurement.eCo2;
-    display->drawString(78 + x, 26 + y, String(eco2) + F("ppm"));
-
     uint16_t tvoc = self->airQualityMeasurement.tVoc;
-    display->drawString(78 + x, 36 + y, String(tvoc) + F("ppb"));
+
+    // Check if values make sense, let's assume we're not measuring in a
+    // clean room, so anything > 0 is ok.
+    if(eco2 > 0) {
+      display->drawString(78 + x, 26 + y, String(eco2) + F("ppm"));
+
+      display->drawString(78 + x, 36 + y, String(tvoc) + F("ppb"));
+    }
   }
 }
 
