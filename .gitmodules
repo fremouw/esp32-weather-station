@@ -4,3 +4,6 @@
 [submodule "lib/esp8266-oled-ssd1306.git"]
 	path = lib/esp8266-oled-ssd1306.git
 	url = https://github.com/fremouw/esp8266-oled-ssd1306.git
+[submodule "lib/asynctcp.git"]
+	path = lib/asynctcp.git
+	url = https://github.com/fremouw/AsyncTCP.git
