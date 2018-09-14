@@ -213,13 +213,14 @@ void WeatherStation::loop() {
     && (this->environmentSensor.enabled() || this->airQualitySensor.enabled())) {
     this->tasks &= ~WeatherStationTasks::ePushTemperature;
 
-    ESP_LOGI(LogTag, "environment sensor enabled: %d, air quality sensor enabled: %d.", this->environmentSensor.enabled(), this->airQualitySensor.enabled());
-    ESP_LOGI(LogTag, "pushing temperature to MQTT broker.");
-
-    StaticJsonBuffer<512> jsonBuffer;  
     unsigned long unixTime = 0;
     bool success = this->ntpClient.getUnixTime(unixTime);
     if(success){      
+      ESP_LOGI(LogTag, "environment sensor enabled: %d, air quality sensor enabled: %d.", this->environmentSensor.enabled(), this->airQualitySensor.enabled());
+      ESP_LOGI(LogTag, "pushing temperature to MQTT broker.");
+
+      StaticJsonBuffer<512> jsonBuffer;  
+
       JsonObject& root = jsonBuffer.createObject();
       root[F("time")] = unixTime;
     
