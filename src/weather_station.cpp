@@ -75,9 +75,6 @@ void WeatherStation::setup() {
 
   //
   spi.setFrequency(10000000);
-
-  this->weatherDisplay.addFrame(Frames::eTimeAndDate);
-  this->weatherDisplay.addFrame(Frames::eWeatherReport);
 }
 
 void WeatherStation::onConnectedToWireless() {
