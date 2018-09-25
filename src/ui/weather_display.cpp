@@ -348,9 +348,9 @@ void WeatherDisplay::DrawForecastDetails(const WeatherDisplay *self,
   display->drawString(x + 20, y + 12, forecastIcon);
 
   display->setFont(ArialMT_Plain_10);
-  display->drawString(x + 20, y + 34, String(round(
+  display->drawString(x + 20, y + 34, String((int)round(
                       forecast.lowTemperature)) + "|" +
-                      String(round(forecast.highTemperature)));
+                      String((int)round(forecast.highTemperature)));
   display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
