@@ -7,9 +7,8 @@
 static const char LogTag[] PROGMEM = "HttpClient";
 
 namespace Http {
-  Client::Client() {
-    // @ToDo: needed?
-    // this->tcp.setRxTimeout(10000);
+  Client::Client(const uint32_t rxTimeout) {
+    this->tcp.setRxTimeout(rxTimeout);
   }
 
   Client::~Client() {}

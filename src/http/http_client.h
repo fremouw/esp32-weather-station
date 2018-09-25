@@ -16,7 +16,7 @@ namespace Http {
 
   class Client {
     public:
-      Client();
+      Client(const uint32_t rxTimeout = 10 /* in seconds */ );
       ~Client();
       bool get(const String& uri, const std::function<void(bool, Response)> callback);
 
