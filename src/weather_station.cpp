@@ -58,11 +58,11 @@ void WeatherStation::setup() {
   static const char kBackgroundTaskName[] PROGMEM = "WeatherStation::StaticBackgroundTask";
 
   xTaskCreatePinnedToCore(
-    WeatherStation::StaticDisplayTask,   /* Task function. */
+    WeatherStation::StaticDisplayTask,      /* Task function. */
     kBackgroundTaskName,                    /* name of task. */
-    16384,                                  /* Stack size of task */
+    8192,                                   /* Stack size of task */
     this,                                   /* parameter of the task */
-    1,                                      /* priority of the task */
+    4,                                      /* priority of the task */
     NULL,                                   /* Task handle to keep track of created task */
     0);                                     /* pin task to core 0 */
 
