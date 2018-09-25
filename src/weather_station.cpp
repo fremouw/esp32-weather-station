@@ -73,7 +73,7 @@ void WeatherStation::setup() {
 
   this->tasks = WeatherStationTasks::eIdle;
 
-  //
+  // Max frequence of OLED display.
   spi.setFrequency(10000000);
 }
 

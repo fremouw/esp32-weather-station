@@ -29,7 +29,7 @@ namespace Http {
     this->callback = callback;
 
     this->tcp.onConnect([this, u](void* v, AsyncClient* c) {
-      ESP_LOGI(LogTag, "connected.");
+      ESP_LOGI(LogTag, "connected %s:%d.", c->remoteIP().toString().c_str(), c->remotePort());
 
       if(!SendRequest(u, c)) {
         ESP_LOGI(LogTag, "connected call.");
