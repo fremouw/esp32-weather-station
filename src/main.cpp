@@ -32,8 +32,8 @@ void setup() {
   Serial.print(F("Flash: Size="));
   Serial.print(ESP.getFlashChipSize());
   Serial.println(F(" bytes"));
-  Serial.print(F("Memory: Total="));
-  Serial.print(ESP.getHeapSize());
+  // Serial.print(F("Memory: Total="));
+  // Serial.print(ESP.getHeapSize());
   Serial.println(F(" bytes"));
   Serial.print(F("Memory: Free="));
   Serial.print(ESP.getFreeHeap());
